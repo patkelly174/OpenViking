@@ -19,5 +19,14 @@ def test_index_rebuild_from_texts(tmp_path):
     indexer.rebuild_index()
 
     # Test searching for content in file1
-    results = indexer.search("core brain logic")
-    assert any("file1.l0.txt" in str(r) for r in results)
+    results = indexer.search("Summary of the core brain logic")
+    assert results[0] == "file1.l0.txt"
+
+def test_search_uninitialized_index(tmp_path):
+    # Setup project root but do NOT build index
+    test_dir = tmp_path
+    indexer = Indexer(project_root=str(test_dir))
+
+    # Search should return empty list, not crash
+    results = indexer.search("anything")
+    assert results == []
