@@ -8,7 +8,15 @@ class Summarizer:
         """
         Takes raw file content and returns a one-sentence summary.
         """
-        prompt = f"Summarize the following file content in exactly one sentence. Focus on the primary purpose of the code:\n\n{content}"
+        if not content or content.strip() == "":
+            return "Empty or non-functional file"
+
+        prompt = (
+            "Summarize the following file content in exactly one sentence. "
+            "Focus on the primary purpose of the code. If the file is empty or "
+            "does not perform any functional task, return 'Empty or non-functional file'.\n\n"
+            f"{content}"
+        )
 
         response = await litellm.acompletion(
             model=self.model,
@@ -25,7 +33,9 @@ class Summarizer:
         prompt = (
             f"Generate a structural map/overview of the directory '{folder_name}' based on its contents:\n\n"
             f"{children_str}\n\n"
-            f"Return a concise overview of the directory's purpose and structure."
+            "Please provide the response in the following format:\n"
+            "1. A 2-3 sentence summary of the directory's overall purpose and role in the project.\n"
+            "2. A list of key components/files and their significance within this directory."
         )
 
         response = await litellm.acompletion(
