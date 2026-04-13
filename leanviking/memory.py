@@ -27,11 +27,24 @@ class Memory:
             messages=[{"role": "user", "content": prompt}],
         )
         raw = response.choices[0].message.content.strip()
-        data = json.loads(raw)
+
+        # Strip markdown code fences that some LLMs add
+        if raw.startswith("```"):
+            lines = raw.split("\n")
+            # Remove first line (```json or ```) and last line (```)
+            raw = "\n".join(lines[1:-1]).strip()
+
+        try:
+            data = json.loads(raw)
+        except json.JSONDecodeError as exc:
+            raise ValueError(f"LLM returned non-JSON response: {raw!r}") from exc
         truths = data.get("truths", [])
 
         for truth in truths:
-            self._upsert(truth["key"], truth["content"])
+            key = truth.get("key", "").strip()
+            content = truth.get("content", "").strip()
+            if key and content:
+                self._upsert(key, content)
 
         return truths
 
