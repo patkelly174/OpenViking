@@ -75,10 +75,7 @@ def _get_language(ext: str):
     try:
         import importlib
         mod = importlib.import_module(module_name)
-        from tree_sitter import Language
-        # tree-sitter >= 0.23 uses Language(module.language())
-        lang = Language(mod.language())
-        return lang, lang_name
+        return mod.language(), lang_name
     except Exception:
         return None, None
 
@@ -101,7 +98,7 @@ def chunk_file(rel_path: str, source_text: str) -> list[SymbolChunk]:
     ext = Path(rel_path).suffix.lower()
     lang, lang_name = _get_language(ext)
 
-    if lang is None or not source_text.strip():
+    if lang is None or lang_name is None or not source_text.strip():
         # Unsupported — emit a single whole-file chunk with no anchor
         lines = source_text.splitlines()
         return [SymbolChunk(
@@ -115,7 +112,7 @@ def chunk_file(rel_path: str, source_text: str) -> list[SymbolChunk]:
 
     try:
         from tree_sitter import Parser
-        parser = Parser(lang)
+        parser = Parser(lang)  # lang is raw capsule from mod.language()
         source_bytes = source_text.encode("utf-8")
         tree = parser.parse(source_bytes)
     except Exception:

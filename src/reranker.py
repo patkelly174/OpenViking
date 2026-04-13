@@ -9,7 +9,7 @@ class Reranker:
     """
 
     def __init__(self, model: str = "BAAI/bge-reranker-base"):
-        from fastembed.rerank.cross_encoder import TextCrossEncoder
+        from fastembed.rerank.cross_encoder import TextCrossEncoder # type: ignore[import-untyped]
         self._model = TextCrossEncoder(model_name=model)
 
     def rerank(self, query: str, docs: list[str], top_k: int) -> list[int]:

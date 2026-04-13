@@ -26,7 +26,7 @@ class LocalEmbedder(BaseEmbedder):
         self.model_name = model
         # Lazy import: fastembed is heavy and downloads models on first use.
         # Users in remote mode should not pay this cost.
-        from fastembed import TextEmbedding
+        from fastembed import TextEmbedding  # type: ignore[import-untyped]
         self._model = TextEmbedding(model=model)
 
     def embed(self, text: str) -> list[float]:

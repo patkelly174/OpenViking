@@ -1,5 +1,8 @@
 import json
+from typing import cast
 import litellm
+from litellm import ModelResponse
+from litellm.types.utils import Choices
 from dataclasses import dataclass
 
 
@@ -40,12 +43,12 @@ class Summarizer:
             f"Content:\n{content}"
         )
 
-        response = await litellm.acompletion(
+        response = cast(ModelResponse, await litellm.acompletion(
             model=self.model,
             messages=[{"role": "user", "content": prompt}],
             max_tokens=300,
-        )
-        raw = response.choices[0].message.content.strip()
+        ))
+        raw = (cast(Choices, response.choices[0]).message.content or "").strip()
 
         # Strip markdown fences if the model adds them despite instructions
         if raw.startswith("```"):
@@ -84,12 +87,12 @@ class Summarizer:
             "file to open next without further exploration."
         )
 
-        response = await litellm.acompletion(
+        response = cast(ModelResponse, await litellm.acompletion(
             model=self.model,
             messages=[{"role": "user", "content": prompt}],
             max_tokens=400,
-        )
-        return response.choices[0].message.content.strip()
+        ))
+        return (cast(Choices, response.choices[0]).message.content or "").strip()
 
     async def hypothetical_answer(self, query: str) -> str:
         """
@@ -106,9 +109,9 @@ class Summarizer:
             "this query. Use technical vocabulary, function names, and concept terms. "
             "Do NOT answer the question itself; describe what the relevant code would look like."
         )
-        response = await litellm.acompletion(
+        response = cast(ModelResponse, await litellm.acompletion(
             model=self.model,
             messages=[{"role": "user", "content": prompt}],
             max_tokens=100,
-        )
-        return response.choices[0].message.content.strip()
+        ))
+        return (cast(Choices, response.choices[0]).message.content or "").strip()

@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
 import lancedb
 import pandas as pd
 from src.embedder import get_embedder, BaseEmbedder
@@ -13,8 +13,8 @@ class Indexer:
     def __init__(
         self,
         project_root: str,
-        embedder: BaseEmbedder = None,
-        reranker=None,
+        embedder: Optional[BaseEmbedder] = None,
+        reranker: Optional[Any] = None,
     ):
         self.project_root = Path(project_root)
         self.index_path = self.project_root / ".ov_brain" / "index"
@@ -23,7 +23,7 @@ class Indexer:
         self.embedder = embedder or get_embedder()
         self.reranker = reranker  # None → skip reranking
 
-    def _load_l0(self, path: Path) -> dict | None:
+    def _load_l0(self, path: Path) -> dict:
         """Read an L0 file. Returns dict with search_text/display_text keys.
 
         Supports both the legacy single-string format and the new JSON format.
@@ -169,7 +169,7 @@ class Indexer:
 
         return merged_ids[:top_k]
 
-    def _keyword_search(self, query: str, table: lancedb.Table) -> list[str]:
+    def _keyword_search(self, query: str, table: Any) -> list[str]:
         """Keyword search using a two-tiered approach: exact phrases and normalized tokens."""
         import re
 

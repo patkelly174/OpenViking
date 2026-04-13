@@ -1,12 +1,15 @@
 import json
 import os
 from pathlib import Path
+from typing import Optional, cast
 
 import litellm
+from litellm import ModelResponse
+from litellm.types.utils import Choices
 
 
 class Memory:
-    def __init__(self, project_root: str = None):
+    def __init__(self, project_root: Optional[str] = None):
         self.project_root = Path(project_root or os.getcwd())
         self.memories_dir = self.project_root / ".ov_brain" / "memories"
         self.memories_dir.mkdir(parents=True, exist_ok=True)
@@ -22,11 +25,11 @@ class Memory:
             "  - 'content': the truth as a single sentence\n\n"
             f"Transcript:\n{transcript}"
         )
-        response = await litellm.acompletion(
+        response = cast(ModelResponse, await litellm.acompletion(
             model=model,
             messages=[{"role": "user", "content": prompt}],
-        )
-        raw = response.choices[0].message.content.strip()
+        ))
+        raw = (cast(Choices, response.choices[0]).message.content or "").strip()
 
         # Strip markdown code fences that some LLMs add
         if raw.startswith("```"):

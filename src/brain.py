@@ -3,11 +3,6 @@ import os
 import warnings
 from src.hash_tracker import HashTracker
 
-_QUESTION_PREFIXES = (
-    "how", "what", "where", "why", "when", "who", "which",
-    "is ", "are ", "does ", "do ", "can ", "could ", "would ",
-)
-
 
 class Brain:
     def __init__(self, project_root=None):
@@ -91,7 +86,7 @@ class Brain:
             dir_counts[str(l1_path)] = dir_counts.get(str(l1_path), 0) + 1
 
         # Select top 2 most frequent directories for L1 orientation
-        top_l1_keys = sorted(dir_counts, key=dir_counts.get, reverse=True)[:2]
+        top_l1_keys = sorted(dir_counts, key=lambda k: dir_counts[k], reverse=True)[:2]
         seen_l1: set[str] = set()
 
         for uri in l0_uris:
@@ -183,7 +178,7 @@ class Brain:
                 from src.chunker import chunk_file
                 # relative path is needed for chunker
                 rel_path = path.relative_to(self.project_root)
-                chunks = chunk_file(rel_path, content)
+                chunks = chunk_file(str(rel_path), content)
                 for chunk in chunks:
                     if chunk.anchor == anchor:
                         return chunk.source
