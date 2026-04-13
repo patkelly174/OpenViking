@@ -24,3 +24,4 @@ exports/
 
 # contextflow runtime index (LanceDB, not portable)
 /.ov_brain/index/
+*.egg-info
