@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import patch, AsyncMock, MagicMock
-from leanviking.summarizer import Summarizer, L0Summary
+from src.summarizer import Summarizer, L0Summary
 
 
 @pytest.mark.asyncio

@@ -1,6 +1,6 @@
 import pytest
 from pathlib import Path
-from leanviking.brain import Brain
+from src.brain import Brain
 
 def test_get_context_includes_uris():
     """Verify that get_context output contains the viking:// URIs."""

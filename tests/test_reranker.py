@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import MagicMock, patch
-from leanviking.reranker import Reranker
+from src.reranker import Reranker
 
 
 def _make_mock_reranker(scores):
@@ -11,7 +11,7 @@ def _make_mock_reranker(scores):
 
 
 def test_rerank_returns_top_k_indices():
-    with patch("leanviking.reranker.Reranker.__init__", lambda self, model=None: None):
+    with patch("contextflow.reranker.Reranker.__init__", lambda self, model=None: None):
         r = Reranker.__new__(Reranker)
         r._model = _make_mock_reranker([0.1, 0.9, 0.4])
 
@@ -22,7 +22,7 @@ def test_rerank_returns_top_k_indices():
 
 
 def test_rerank_empty_docs():
-    with patch("leanviking.reranker.Reranker.__init__", lambda self, model=None: None):
+    with patch("contextflow.reranker.Reranker.__init__", lambda self, model=None: None):
         r = Reranker.__new__(Reranker)
         r._model = MagicMock()
 
@@ -32,7 +32,7 @@ def test_rerank_empty_docs():
 
 
 def test_rerank_top_k_clamped_to_doc_count():
-    with patch("leanviking.reranker.Reranker.__init__", lambda self, model=None: None):
+    with patch("contextflow.reranker.Reranker.__init__", lambda self, model=None: None):
         r = Reranker.__new__(Reranker)
         r._model = _make_mock_reranker([0.3, 0.7])
 

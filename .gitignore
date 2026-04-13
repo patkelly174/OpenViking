@@ -114,15 +114,15 @@ docker-compose.override.yml
 /demo_data/*
 /benchmark_data/*
 .claude
-.openviking
+.contextflow
 *.code-workspace
-.openviking.pid
+.contextflow.pid
 exports/
 
 # API Test temporary files
 tests/api_test/api-test-report.html
-tests/api_test/openviking-server.log
-tests/api_test/openviking-server.pid
+tests/api_test/contextflow-server.log
+tests/api_test/contextflow-server.pid
 tests/oc2ov_test/config/settings.py
 
 # Benchmark outputs
@@ -188,13 +188,13 @@ dmypy.json
 
 # Cython debug symbols
 cython_debug/
-openviking/bin/
+contextflow/bin/
 third_party/agfs/bin/
 test_scripts/
 examples/data/
-openviking/_version.py
+contextflow/_version.py
 specs/
 .trae/
 
-# leanviking runtime index (LanceDB, not portable)
+# contextflow runtime index (LanceDB, not portable)
 /.ov_brain/index/

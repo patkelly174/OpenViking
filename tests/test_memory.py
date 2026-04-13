@@ -1,7 +1,7 @@
 import pytest
 from pathlib import Path
 from unittest.mock import patch, AsyncMock
-from leanviking.memory import Memory
+from src.memory import Memory
 
 
 @pytest.mark.asyncio

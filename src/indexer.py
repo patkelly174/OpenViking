@@ -2,7 +2,7 @@ from pathlib import Path
 from typing import Optional
 import lancedb
 import pandas as pd
-from leanviking.embedder import get_embedder, BaseEmbedder
+from src.embedder import get_embedder, BaseEmbedder
 
 _INDEX_TABLE = "l0_index"
 # Fetch this many candidates from the vector index before re-ranking.
@@ -139,16 +139,73 @@ class Indexer:
         except Exception:
             return []
 
+        # 1. Vector Search
         query_vec = self.embedder.embed(query)
+        vector_results = table.search(query_vec).limit(top_k * _OVERFETCH_MULTIPLIER).to_pandas()
+        vector_ids = vector_results["id"].tolist() if not vector_results.empty else []
+
+        # 2. Keyword Search (Simple token-based overlap on search/display text)
+        keyword_ids = self._keyword_search(query, table)
+
+        # Merge and deduplicate while preserving order
+        merged_ids = []
+        seen = set()
+        for uid in (keyword_ids + vector_ids):
+            if uid not in seen:
+                merged_ids.append(uid)
+                seen.add(uid)
+
+        if not merged_ids:
+            return []
 
         if self.reranker is not None:
             # Over-fetch then re-rank with a cross-encoder for better precision.
-            fetch_k = max(top_k * _OVERFETCH_MULTIPLIER, top_k)
-            results = table.search(query_vec).limit(fetch_k).to_pandas()
-            ids = results["id"].tolist()
-            texts = results["search_text"].tolist() if "search_text" in results.columns else ids
-            top_indices = self.reranker.rerank(query, texts, top_k=top_k)
-            return [ids[i] for i in top_indices]
+            # We use the merged candidates as the input to the reranker.
+            texts = self.get_display_texts(merged_ids)
+            # reranker.rerank expects a list of texts in the same order as ids
+            ordered_texts = [texts.get(uid, uid) for uid in merged_ids]
+            top_indices = self.reranker.rerank(query, ordered_texts, top_k=top_k)
+            return [merged_ids[i] for i in top_indices]
 
-        results = table.search(query_vec).limit(top_k).to_pandas()
-        return results["id"].tolist()
+        return merged_ids[:top_k]
+
+    def _keyword_search(self, query: str, table: lancedb.Table) -> list[str]:
+        """Keyword search using a two-tiered approach: exact phrases and normalized tokens."""
+        import re
+
+        # Tier 1: Exact Phrase Match (Preserves ordering and specific identifier structure)
+        # We search for the raw query and the lowercase version
+        phrase_filters = [
+            f"search_text LIKE '%{query}%' OR display_text LIKE '%{query}%'",
+            f"search_text LIKE '%{query.lower()}%' OR display_text LIKE '%{query.lower()}%'"
+        ]
+        combined_phrase_filter = " OR ".join(phrase_filters)
+
+        # Tier 2: Normalized Token Match (Maximizes recall via splitting)
+        raw_query = query.lower()
+        tokens = re.findall(r'[a-z0-9]+', re.sub(r'([a-z])([A-Z])', r'\1 \2', raw_query))
+
+        token_filters = []
+        for token in tokens:
+            token_filters.append(f"search_text LIKE '%{token}%' OR display_text LIKE '%{token}%'")
+        combined_token_filter = " OR ".join(token_filters)
+
+        merged_ids = []
+        try:
+            # Execute Phrase Search
+            phrase_results = table.search().where(combined_phrase_filter).limit(50).to_pandas()
+            if not phrase_results.empty:
+                merged_ids.extend(phrase_results["id"].tolist())
+
+            # Execute Token Search (only if we need more candidates or to ensure recall)
+            if tokens:
+                token_results = table.search().where(combined_token_filter).limit(100).to_pandas()
+                if not token_results.empty:
+                    # Append token results, deduplicating against phrase results
+                    for uid in token_results["id"].tolist():
+                        if uid not in merged_ids:
+                            merged_ids.append(uid)
+        except Exception:
+            pass
+
+        return merged_ids

@@ -4,13 +4,13 @@ import subprocess
 from pathlib import Path
 
 import typer
-from leanviking.indexer import Indexer
-from leanviking.summarizer import Summarizer
-from leanviking.hash_tracker import HashTracker
-from leanviking.cli_utils import OutputManager
-from leanviking.chunker import chunk_file
+from src.indexer import Indexer
+from src.summarizer import Summarizer
+from src.hash_tracker import HashTracker
+from src.cli_utils import OutputManager
+from src.chunker import chunk_file
 
-app = typer.Typer(help="OpenViking local brain tools.")
+app = typer.Typer(help="ContextFlow local brain tools.")
 
 om = OutputManager()
 
@@ -19,7 +19,7 @@ om = OutputManager()
 def main(
     json: bool = typer.Option(False, "--json", help="Output results in JSON format"),
 ):
-    """OpenViking local brain tools."""
+    """ContextFlow local brain tools."""
     om.json_mode = json
 
 
@@ -37,8 +37,8 @@ def _read_source_file(path: Path) -> str | None:
 def _install_git_hooks(root: Path):
     hook_path = root / ".git" / "hooks" / "post-commit"
     hook_content = f"""#!/bin/sh
-echo "OpenViking: syncing brain after commit..."
-uv run python -m leanviking.cli sync --project-root {root}
+echo "ContextFlow: syncing brain after commit..."
+uv run python -m contextflow.cli sync --project-root {root}
 """
     try:
         hook_path.write_text(hook_content)
@@ -178,7 +178,7 @@ async def _init_async(root: Path, mode: str, install_hooks: bool, force: bool):
     tracker.save()
 
     # --- Rebuild vector index ---
-    from leanviking.embedder import get_embedder
+    from src.embedder import get_embedder
     mode_file = brain_dir / "embedding_mode"
     prev_mode = mode_file.read_text().strip() if mode_file.exists() else None
     if prev_mode and prev_mode != mode and not force:
@@ -196,7 +196,7 @@ async def _init_async(root: Path, mode: str, install_hooks: bool, force: bool):
     if install_hooks:
         _install_git_hooks(root)
 
-    om.echo(f"ov-brain initialized at {brain_dir}")
+    om.echo(f"cf-brain initialized at {brain_dir}")
     om.finalize()
 
 
@@ -205,7 +205,7 @@ def sync(
     project_root: str = typer.Option(".", help="Project root directory"),
 ):
     """Incrementally sync the index for any changed files."""
-    from leanviking.brain import Brain
+    from src.brain import Brain
     brain = Brain(project_root)
     brain.sync_index()
     om.echo("Brain synced.")
@@ -219,7 +219,7 @@ def query(
     project_root: str = typer.Option(".", help="Project root directory"),
 ):
     """Search the brain for context relevant to a topic."""
-    from leanviking.brain import Brain
+    from src.brain import Brain
     brain = Brain(project_root)
     brain.sync_index()
     l0_uris = brain.indexer.search(query_text, top_k=top_k)
@@ -256,8 +256,8 @@ def dive(
     uri: str,
     project_root: str = typer.Option(".", help="Project root directory"),
 ):
-    """Read the full source of a viking:// URI found in a brain query."""
-    from leanviking.brain import Brain
+    """Read the full source of a contextflow:// URI found in a brain query."""
+    from src.brain import Brain
     brain = Brain(project_root)
     content = brain.dive(uri)
 

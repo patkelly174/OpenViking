@@ -1,6 +1,6 @@
 import pytest
 from pathlib import Path
-from leanviking.cli import _read_source_file
+from src.cli import _read_source_file
 
 def test_read_source_file_line_numbering():
     """Verify that _read_source_file correctly prefixes lines with numbers."""

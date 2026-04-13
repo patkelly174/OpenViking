@@ -1,5 +1,5 @@
 import pytest
-from leanviking.chunker import chunk_file, SymbolChunk
+from src.chunker import chunk_file, SymbolChunk
 
 
 PYTHON_SOURCE = """\
@@ -88,7 +88,7 @@ def test_javascript_chunks():
 
 def test_large_symbol_truncated():
     """Symbols exceeding _MAX_CHUNK_BYTES are truncated, not dropped."""
-    from leanviking.chunker import _MAX_CHUNK_BYTES
+    from src.chunker import _MAX_CHUNK_BYTES
     big_body = "    x = 1\n" * (_MAX_CHUNK_BYTES // 10 + 50)
     big_fn = f"def big_function():\n{big_body}"
     chunks = chunk_file("src/big.py", big_fn)

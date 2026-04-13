@@ -1,7 +1,7 @@
 from pathlib import Path
 import os
 import warnings
-from leanviking.hash_tracker import HashTracker
+from src.hash_tracker import HashTracker
 
 _QUESTION_PREFIXES = (
     "how", "what", "where", "why", "when", "who", "which",
@@ -14,7 +14,7 @@ class Brain:
         self.project_root = Path(project_root or os.getcwd()).resolve()
         self.brain_dir = self.project_root / ".ov_brain"
         self.tracker = HashTracker(self.brain_dir)
-        from leanviking.indexer import Indexer
+        from src.indexer import Indexer
         self.indexer = Indexer(str(self.project_root))
         self._summarizer = None  # lazy — only needed for HyDE
 
@@ -77,12 +77,21 @@ class Brain:
         - Optionally the raw source (L2) when include_l2=True
         """
         self.sync_index()
-        effective_query = self._hyde_query(query)
-        l0_uris = self.indexer.search(effective_query, top_k=top_k)
+        # No more HyDE expansion; use Hybrid Search in indexer
+        l0_uris = self.indexer.search(query, top_k=top_k)
 
         display_texts = self.indexer.get_display_texts(l0_uris)
 
         context_blocks = []
+        # Keep track of directory overviews to limit them to top 2 most frequent
+        dir_counts: dict[str, int] = {}
+        for uri in l0_uris:
+            resolved = self.resolve_uri(uri)
+            l1_path = self._get_l1_path(resolved)
+            dir_counts[str(l1_path)] = dir_counts.get(str(l1_path), 0) + 1
+
+        # Select top 2 most frequent directories for L1 orientation
+        top_l1_keys = sorted(dir_counts, key=dir_counts.get, reverse=True)[:2]
         seen_l1: set[str] = set()
 
         for uri in l0_uris:
@@ -94,10 +103,10 @@ class Brain:
             if l0_text:
                 block_parts.append(l0_text)
 
-            # L1: directory overview (deduplicated)
+            # L1: directory overview (Surgical Gating)
             l1_path = self._get_l1_path(resolved)
             l1_key = str(l1_path)
-            if l1_key not in seen_l1:
+            if l1_key in top_l1_keys and l1_key not in seen_l1:
                 seen_l1.add(l1_key)
                 try:
                     l1_content = l1_path.read_text()
@@ -121,37 +130,6 @@ class Brain:
             context_blocks.append("\n".join(block_parts))
 
         return "\n\n".join(context_blocks)
-
-    # ------------------------------------------------------------------
-    # HyDE
-    # ------------------------------------------------------------------
-
-    def _is_question(self, query: str) -> bool:
-        q = query.strip().lower()
-        return q.endswith("?") or any(q.startswith(p) for p in _QUESTION_PREFIXES)
-
-    def _hyde_query(self, query: str) -> str:
-        """If the query looks like a natural-language question, expand it with HyDE."""
-        if not self._is_question(query):
-            return query
-        import asyncio
-        summarizer = self._get_summarizer()
-        try:
-            loop = asyncio.get_event_loop()
-            if loop.is_running():
-                import concurrent.futures
-                with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
-                    future = pool.submit(asyncio.run, summarizer.hypothetical_answer(query))
-                    return future.result(timeout=10)
-            return loop.run_until_complete(summarizer.hypothetical_answer(query))
-        except Exception:
-            return query
-
-    def _get_summarizer(self):
-        if self._summarizer is None:
-            from leanviking.summarizer import Summarizer
-            self._summarizer = Summarizer()
-        return self._summarizer
 
     # ------------------------------------------------------------------
     # Helpers
@@ -180,10 +158,16 @@ class Brain:
     def dive(self, uri: str) -> str:
         """Resolve a URI and return the raw source content (L2).
 
-        Supports anchored URIs (viking://path/file.py#symbol_name) — the anchor
-        is stripped for file resolution; the full file is returned.
+        Supports anchored URIs (viking://path/file.py#symbol_name) — if the anchor
+        matches a known symbol in the file, only that symbol's source is returned.
+        Otherwise, the full file is returned.
         """
         try:
+            # Split anchor before resolution
+            anchor = None
+            if "#" in uri:
+                uri, anchor = uri.split("#", 1)
+
             resolved_path = self.resolve_uri(uri)
             path = Path(resolved_path)
 
@@ -193,7 +177,18 @@ class Brain:
             if not path.is_file():
                 return f"Error: {uri} resolves to a directory, not a file."
 
-            return path.read_text()
+            content = path.read_text()
+
+            if anchor:
+                from src.chunker import chunk_file
+                # relative path is needed for chunker
+                rel_path = path.relative_to(self.project_root)
+                chunks = chunk_file(rel_path, content)
+                for chunk in chunks:
+                    if chunk.anchor == anchor:
+                        return chunk.source
+
+            return content
         except ValueError as e:
             return f"Error resolving URI {uri}: {str(e)}"
         except Exception as e:

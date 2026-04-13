@@ -2,7 +2,7 @@ import json
 import pytest
 from unittest.mock import MagicMock, patch
 from pathlib import Path
-from leanviking.brain import Brain
+from src.brain import Brain
 
 
 def _write_l0(path: Path, search_text: str, display_text: str, uri: str):

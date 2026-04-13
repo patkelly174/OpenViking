@@ -3,7 +3,7 @@ import numpy as np
 import pytest
 from pathlib import Path
 from unittest.mock import MagicMock
-from leanviking.indexer import Indexer
+from src.indexer import Indexer
 
 
 def _make_embedder(vec=None):

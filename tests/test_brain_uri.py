@@ -1,5 +1,5 @@
 from pathlib import Path
-from leanviking.brain import Brain
+from src.brain import Brain
 import pytest
 
 

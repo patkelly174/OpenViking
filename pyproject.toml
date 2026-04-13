@@ -9,7 +9,7 @@ requires = [
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "openviking"
+name = "contextflow"
 dynamic = ["version"]
 description = "An Agent-native context database"
 readme = "README.md"
@@ -168,7 +168,7 @@ bot-sandbox = [
 bot-fuse = ["fusepy>=3.0.1"]
 bot-opencode = ["opencode-ai>=0.1.0a0"]
 bot-full = [
-    "openviking[bot,bot-langfuse,bot-telegram,bot-feishu,bot-dingtalk,bot-slack,bot-qq,bot-sandbox,bot-fuse,bot-opencode]",
+    "contextflow[bot,bot-langfuse,bot-telegram,bot-feishu,bot-dingtalk,bot-slack,bot-qq,bot-sandbox,bot-fuse,bot-opencode]",
 ]
 benchmark = [
     "langchain>=1.0.0",
@@ -180,30 +180,30 @@ benchmark = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/volcengine/openviking"
-Documentation = "https://openviking.ai"
-Repository = "https://github.com/volcengine/openviking"
-Issues = "https://github.com/volcengine/openviking/issues"
+Homepage = "https://github.com/volcengine/contextflow"
+Documentation = "https://contextflow.ai"
+Repository = "https://github.com/volcengine/contextflow"
+Issues = "https://github.com/volcengine/contextflow/issues"
 
 [project.scripts]
-ov = "openviking_cli.rust_cli:main"  # Rust CLI 入口（极简包装器）
-openviking = "openviking_cli.rust_cli:main"  # Rust CLI 入口（放弃 python CLI）
-openviking-server = "openviking_cli.server_bootstrap:main"
-vikingbot = "vikingbot.cli.commands:app"
+ov = "contextflow_cli.rust_cli:main"  # Rust CLI 入口（极简包装器）
+contextflow = "contextflow_cli.rust_cli:main"  # Rust CLI 入口（放弃 python CLI）
+contextflow-server = "contextflow_cli.server_bootstrap:main"
+vikingbot = "contextflowbot.cli.commands:app"
 ov-init = "leanviking.cli:app"
 
 [tool.setuptools_scm]
-write_to = "openviking/_version.py"
+write_to = "contextflow/_version.py"
 local_scheme = "no-local-version"
 tag_regex = "^(?:v)?(?:[a-zA-Z0-9_]+@)?(?P<version>[0-9]+(?:\\.[0-9]+)*)$"
 
 [tool.setuptools.packages.find]
 where = [".", "bot"]
-include = ["openviking*", "vikingbot*", "leanviking*"]
+include = ["contextflow*", "contextflowbot*", "contextflow*"]
 exclude = ["tests*", "docs*", "examples*"]
 
 [tool.setuptools.package-data]
-openviking = [
+contextflow = [
     "prompts/templates/**/*.yaml",
     "console/static/**/*",
     "lib/ragfs_python*.so",
@@ -238,7 +238,7 @@ python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
 asyncio_mode = "auto"
-addopts = "-v --cov=openviking --cov=leanviking --cov-report=term-missing"
+addopts = "-v --cov=contextflow --cov=contextflow --cov-report=term-missing"
 
 [tool.ruff]
 line-length = 100
