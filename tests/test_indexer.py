@@ -27,13 +27,13 @@ def test_rebuild_and_search_nested(tmp_path):
         abstracts_dir / "main.py.l0.txt",
         search_text="entry point application startup",
         display_text="Entry point of the application.",
-        uri="viking://src/main.py",
+        uri="contextflow://src/main.py",
     )
 
     indexer = Indexer(project_root=str(tmp_path), embedder=_make_embedder())
     indexer.rebuild_index()
     results = indexer.search("entry point")
-    assert results == ["viking://src/main.py"]
+    assert results == ["contextflow://src/main.py"]
 
 
 def test_rebuild_multiple_nested_files(tmp_path):
@@ -42,13 +42,13 @@ def test_rebuild_multiple_nested_files(tmp_path):
         abstracts_dir / "src" / "core" / "auth.py.l0.txt",
         search_text="authentication login credentials",
         display_text="Handles authentication.",
-        uri="viking://src/core/auth.py",
+        uri="contextflow://src/core/auth.py",
     )
     _write_l0(
         abstracts_dir / "src" / "utils.py.l0.txt",
         search_text="utility helpers misc",
         display_text="Utility helpers.",
-        uri="viking://src/utils.py",
+        uri="contextflow://src/utils.py",
     )
 
     call_count = [0]
@@ -66,8 +66,8 @@ def test_rebuild_multiple_nested_files(tmp_path):
     indexer.rebuild_index()
     results = indexer.search("anything", top_k=2)
     uris = set(results)
-    assert "viking://src/core/auth.py" in uris
-    assert "viking://src/utils.py" in uris
+    assert "contextflow://src/core/auth.py" in uris
+    assert "contextflow://src/utils.py" in uris
 
 
 def test_search_empty_index_returns_empty_list(tmp_path):
@@ -102,13 +102,13 @@ def test_get_display_texts(tmp_path):
         abstracts_dir / "foo.py.l0.txt",
         search_text="foo search",
         display_text="Foo does bar.",
-        uri="viking://foo.py",
+        uri="contextflow://foo.py",
     )
 
     indexer = Indexer(project_root=str(tmp_path), embedder=_make_embedder())
     indexer.rebuild_index()
-    texts = indexer.get_display_texts(["viking://foo.py"])
-    assert texts["viking://foo.py"] == "Foo does bar."
+    texts = indexer.get_display_texts(["contextflow://foo.py"])
+    assert texts["contextflow://foo.py"] == "Foo does bar."
 
 
 def test_search_with_reranker(tmp_path):
@@ -116,10 +116,10 @@ def test_search_with_reranker(tmp_path):
     abstracts_dir.mkdir(parents=True)
 
     for name, search, display, uri in [
-        ("a.py", "auth login jwt", "Auth module.", "viking://a.py"),
-        ("b.py", "database orm query", "DB module.", "viking://b.py"),
+        ("a.py", "auth login jwt", "Auth module.", "contextflow://a.py"),
+        ("b.py", "database orm query", "DB module.", "contextflow://b.py"),
     ]:
-        _write_l0(abstracts_dir / f"{name}.l0.txt", search, display, f"viking://{name}")
+        _write_l0(abstracts_dir / f"{name}.l0.txt", search, display, f"contextflow://{name}")
 
     # Reranker that always puts b.py first regardless of vector score
     mock_reranker = MagicMock()
@@ -139,5 +139,5 @@ def test_search_with_reranker(tmp_path):
     indexer = Indexer(project_root=str(tmp_path), embedder=embedder, reranker=mock_reranker)
     indexer.rebuild_index()
     results = indexer.search("database", top_k=2)
-    assert results[0] == "viking://b.py"
+    assert results[0] == "contextflow://b.py"
     mock_reranker.rerank.assert_called_once()

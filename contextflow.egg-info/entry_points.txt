@@ -1,0 +1,6 @@
+[console_scripts]
+contextflow = contextflow_cli.rust_cli:main
+contextflow-server = contextflow_cli.server_bootstrap:main
+ov = contextflow_cli.rust_cli:main
+ov-init = leanviking.cli:app
+vikingbot = contextflowbot.cli.commands:app

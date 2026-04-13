@@ -3,10 +3,10 @@ from pathlib import Path
 from src.brain import Brain
 
 def test_get_context_includes_uris():
-    """Verify that get_context output contains the viking:// URIs."""
+    """Verify that get_context output contains the contextflow:// URIs."""
     # We'll use a mock indexer for this test
     brain = Brain(project_root=".")
-    brain.indexer.search = lambda query, top_k: ["viking://test_file.py"]
+    brain.indexer.search = lambda query, top_k: ["contextflow://test_file.py"]
 
     # Mock L1 path to return a dummy file
     test_l1 = Path(".ov_brain/overviews/root.l1.txt")
@@ -15,8 +15,8 @@ def test_get_context_includes_uris():
 
     try:
         context = brain.get_context("test")
-        assert "viking://test_file.py" in context
-        assert "--- [viking://test_file.py] ---" in context
+        assert "contextflow://test_file.py" in context
+        assert "--- [contextflow://test_file.py] ---" in context
     finally:
         if test_l1.exists():
             test_l1.unlink()
@@ -30,9 +30,9 @@ def test_dive_success():
     try:
         brain = Brain(project_root=".")
         # Mock the indexer search to avoid needing a real DB
-        brain.indexer.search = lambda query, top_k: ["viking://test_dive_source.py"]
+        brain.indexer.search = lambda query, top_k: ["contextflow://test_dive_source.py"]
 
-        content = brain.dive("viking://test_dive_source.py")
+        content = brain.dive("contextflow://test_dive_source.py")
         assert content == "print('hello world')"
     finally:
         if test_file.exists():
@@ -41,14 +41,14 @@ def test_dive_success():
 def test_dive_not_found():
     """Verify dive handles missing files gracefully."""
     brain = Brain(project_root=".")
-    content = brain.dive("viking://non_existent_file.py")
+    content = brain.dive("contextflow://non_existent_file.py")
     assert "not found on disk" in content
 
 def test_dive_security_bound():
     """Verify dive prevents traversal outside the project root."""
     brain = Brain(project_root=".")
     # resolve_uri already handles this, so we test it via dive
-    content = brain.dive("viking://../../etc/passwd")
+    content = brain.dive("contextflow://../../etc/passwd")
     assert "Error resolving URI" in content
 
 def test_dive_directory():
@@ -59,7 +59,7 @@ def test_dive_directory():
 
     try:
         brain = Brain(project_root=".")
-        content = brain.dive("viking://test_dive_dir")
+        content = brain.dive("contextflow://test_dive_dir")
         assert "resolves to a directory, not a file" in content
     finally:
         if test_dir.exists():

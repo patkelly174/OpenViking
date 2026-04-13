@@ -77,13 +77,7 @@ ContextFlow implements a hierarchical indexing strategy to balance precision and
 
 ### 2. The Retrieval Pipeline
 
-ContextFlow doesn't just do simple vector search; it uses a **Retrieve & Re-rank** pipeline:
-
-1. **HyDE (Hypothetical Document Embeddings)**: For natural language questions, OpenViking generates a "fake" answer first and uses _that_ to search the vector space, significantly improving hit rates.
-2. **Over-fetching**: The system fetches more candidates than requested (typically 6x).
-3. **Re-ranking**: A cross-encoder reranker scores the candidates against the original query to ensure the top results are the most relevant.
-
-### 3. The `viking://` URI
+### 3. The `contextflow://` URI
 
 The `contextflow://` protocol is the primary pointer in the system.
 

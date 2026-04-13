@@ -39,7 +39,7 @@ def test_python_extracts_functions_and_classes():
     assert any("Greeter" in a for a in anchors)
     # All URIs start with the file path
     for uri in uris:
-        assert uri.startswith("viking://src/greet.py")
+        assert uri.startswith("contextflow://src/greet.py")
 
 
 def test_python_chunk_uris_have_anchors():
@@ -59,7 +59,7 @@ def test_empty_file_returns_single_whole_file_chunk():
     chunks = chunk_file("src/empty.py", EMPTY_SOURCE)
     assert len(chunks) == 1
     assert chunks[0].anchor == ""
-    assert chunks[0].uri == "viking://src/empty.py"
+    assert chunks[0].uri == "contextflow://src/empty.py"
 
 
 def test_unsupported_extension_returns_single_chunk():

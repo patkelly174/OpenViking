@@ -13,9 +13,9 @@ def _write_l0(path: Path, search_text: str, display_text: str, uri: str):
 def test_get_context_returns_l0_and_l1(tmp_path):
     brain = Brain(project_root=str(tmp_path))
     brain.indexer = MagicMock()
-    brain.indexer.search.return_value = ["viking://src/main.py"]
+    brain.indexer.search.return_value = ["contextflow://src/main.py"]
     brain.indexer.get_display_texts.return_value = {
-        "viking://src/main.py": "main.py: entry point, exports main() at src/main.py:1."
+        "contextflow://src/main.py": "main.py: entry point, exports main() at src/main.py:1."
     }
 
     # Write an L1 overview
@@ -36,14 +36,14 @@ def test_get_context_deduplicates_l1(tmp_path):
     brain = Brain(project_root=str(tmp_path))
     brain.indexer = MagicMock()
     brain.indexer.search.return_value = [
-        "viking://src/a.py",
-        "viking://src/b.py",
-        "viking://src/c.py",
+        "contextflow://src/a.py",
+        "contextflow://src/b.py",
+        "contextflow://src/c.py",
     ]
     brain.indexer.get_display_texts.return_value = {
-        "viking://src/a.py": "A summary.",
-        "viking://src/b.py": "B summary.",
-        "viking://src/c.py": "C summary.",
+        "contextflow://src/a.py": "A summary.",
+        "contextflow://src/b.py": "B summary.",
+        "contextflow://src/c.py": "C summary.",
     }
 
     overviews_dir = tmp_path / ".ov_brain" / "overviews"
@@ -57,9 +57,9 @@ def test_get_context_deduplicates_l1(tmp_path):
 def test_get_context_includes_l2_when_requested(tmp_path):
     brain = Brain(project_root=str(tmp_path))
     brain.indexer = MagicMock()
-    brain.indexer.search.return_value = ["viking://src/main.py"]
+    brain.indexer.search.return_value = ["contextflow://src/main.py"]
     brain.indexer.get_display_texts.return_value = {
-        "viking://src/main.py": "main.py display text"
+        "contextflow://src/main.py": "main.py display text"
     }
 
     src_dir = tmp_path / "src"
@@ -80,9 +80,9 @@ def test_get_context_includes_l2_when_requested(tmp_path):
 def test_get_context_excludes_l2_by_default(tmp_path):
     brain = Brain(project_root=str(tmp_path))
     brain.indexer = MagicMock()
-    brain.indexer.search.return_value = ["viking://src/main.py"]
+    brain.indexer.search.return_value = ["contextflow://src/main.py"]
     brain.indexer.get_display_texts.return_value = {
-        "viking://src/main.py": "Display text only"
+        "contextflow://src/main.py": "Display text only"
     }
 
     src_dir = tmp_path / "src"
@@ -101,9 +101,9 @@ def test_get_context_excludes_l2_by_default(tmp_path):
 def test_get_context_warns_on_missing_l1(tmp_path):
     brain = Brain(project_root=str(tmp_path))
     brain.indexer = MagicMock()
-    brain.indexer.search.return_value = ["viking://src/main.py"]
+    brain.indexer.search.return_value = ["contextflow://src/main.py"]
     brain.indexer.get_display_texts.return_value = {
-        "viking://src/main.py": "Display text"
+        "contextflow://src/main.py": "Display text"
     }
 
     with pytest.warns(UserWarning, match="L1 overview not found"):

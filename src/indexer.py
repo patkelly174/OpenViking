@@ -62,7 +62,7 @@ class Indexer:
                     rel = str(l0_path.relative_to(abstracts_dir))
                     if rel.endswith(".l0.txt"):
                         rel = rel[: -len(".l0.txt")]
-                    uri = f"viking://{rel}"
+                    uri = f"contextflow://{rel}"
                 data.append({
                     "id": uri,
                     "search_text": l0["search_text"],
@@ -101,7 +101,7 @@ class Indexer:
                 rel = str(file.relative_to(abstracts_dir))
                 if rel.endswith(".l0.txt"):
                     rel = rel[: -len(".l0.txt")]
-                uri = f"viking://{rel}"
+                uri = f"contextflow://{rel}"
 
             data.append({
                 "id": uri,

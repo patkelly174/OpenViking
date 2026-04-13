@@ -2,7 +2,7 @@
 
 Walks source files and extracts top-level functions, methods, and classes as
 discrete chunks. Each chunk becomes its own L0 entry in the index, keyed by
-a URI with a #symbol anchor (e.g. viking://src/auth.py#verify_token).
+a URI with a #symbol anchor (e.g. contextflow://src/auth.py#verify_token).
 
 Supports: Python, JavaScript/TypeScript, Java, C++, Rust, Go, C#, PHP, Lua.
 Falls back to whole-file chunking for unsupported or unparseable files.
@@ -63,7 +63,7 @@ class SymbolChunk:
     start_line: int        # 1-based
     end_line: int          # 1-based inclusive
     source: str            # raw source text of the symbol
-    uri: str               # full viking:// URI with anchor
+    uri: str               # full contextflow:// URI with anchor
 
 
 def _get_language(ext: str):
@@ -110,7 +110,7 @@ def chunk_file(rel_path: str, source_text: str) -> list[SymbolChunk]:
             start_line=1,
             end_line=len(lines),
             source=source_text[:_MAX_CHUNK_BYTES],
-            uri=f"viking://{rel_path}",
+            uri=f"contextflow://{rel_path}",
         )]
 
     try:
@@ -126,7 +126,7 @@ def chunk_file(rel_path: str, source_text: str) -> list[SymbolChunk]:
             start_line=1,
             end_line=len(lines),
             source=source_text[:_MAX_CHUNK_BYTES],
-            uri=f"viking://{rel_path}",
+            uri=f"contextflow://{rel_path}",
         )]
 
     symbol_types = _SYMBOL_NODE_TYPES.get(lang_name, set())
@@ -165,7 +165,7 @@ def chunk_file(rel_path: str, source_text: str) -> list[SymbolChunk]:
                 start_line=start_line,
                 end_line=end_line,
                 source=numbered,
-                uri=f"viking://{rel_path}#{anchor}",
+                uri=f"contextflow://{rel_path}#{anchor}",
             ))
             # Recurse into children with this name as parent
             for child in node.children:
@@ -185,7 +185,7 @@ def chunk_file(rel_path: str, source_text: str) -> list[SymbolChunk]:
             start_line=1,
             end_line=len(lines),
             source=source_text[:_MAX_CHUNK_BYTES],
-            uri=f"viking://{rel_path}",
+            uri=f"contextflow://{rel_path}",
         )]
 
     return chunks

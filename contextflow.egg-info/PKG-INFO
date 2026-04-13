@@ -1,0 +1,265 @@
+Metadata-Version: 2.4
+Name: contextflow
+Version: 0.1.dev1
+Summary: An Agent-native context database
+Author-email: ByteDance <noreply@bytedance.com>
+License: AGPL-3.0
+Project-URL: Homepage, https://github.com/volcengine/contextflow
+Project-URL: Documentation, https://contextflow.ai
+Project-URL: Repository, https://github.com/volcengine/contextflow
+Project-URL: Issues, https://github.com/volcengine/contextflow/issues
+Classifier: Development Status :: 3 - Alpha
+Classifier: Intended Audience :: Developers
+Classifier: Topic :: Scientific/Engineering :: Artificial Intelligence
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Programming Language :: Python :: 3.13
+Classifier: Programming Language :: Python :: 3.14
+Requires-Python: >=3.10
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: pydantic>=2.0.0
+Requires-Dist: typing-extensions>=4.5.0
+Requires-Dist: pyyaml>=6.0
+Requires-Dist: httpx>=0.25.0
+Requires-Dist: pdfplumber>=0.10.0
+Requires-Dist: readabilipy>=0.2.0
+Requires-Dist: markdownify>=0.11.0
+Requires-Dist: openai>=1.0.0
+Requires-Dist: requests>=2.31.0
+Requires-Dist: python-docx>=1.0.0
+Requires-Dist: olefile>=0.47
+Requires-Dist: xlrd>=2.0.1
+Requires-Dist: python-pptx>=1.0.0
+Requires-Dist: openpyxl>=3.0.0
+Requires-Dist: ebooklib>=0.18.0
+Requires-Dist: json-repair>=0.25.0
+Requires-Dist: apscheduler>=3.11.0
+Requires-Dist: volcengine>=1.0.216
+Requires-Dist: volcengine-python-sdk[ark]>=5.0.3
+Requires-Dist: fastapi>=0.128.0
+Requires-Dist: uvicorn>=0.39.0
+Requires-Dist: xxhash>=3.0.0
+Requires-Dist: jinja2>=3.1.6
+Requires-Dist: tabulate>=0.9.0
+Requires-Dist: urllib3>=2.6.3
+Requires-Dist: protobuf>=6.33.5
+Requires-Dist: pdfminer-six>=20251230
+Requires-Dist: typer>=0.12.0
+Requires-Dist: litellm<1.83.1,>=1.0.0
+Requires-Dist: lancedb>=0.17.0
+Requires-Dist: pyarrow>=14.0.0
+Requires-Dist: numpy>=1.26.0
+Requires-Dist: python-multipart>=0.0.22
+Requires-Dist: tree-sitter>=0.23.0
+Requires-Dist: tree-sitter-python>=0.23.0
+Requires-Dist: tree-sitter-javascript>=0.23.0
+Requires-Dist: tree-sitter-typescript>=0.23.0
+Requires-Dist: tree-sitter-java>=0.23.0
+Requires-Dist: tree-sitter-cpp>=0.23.0
+Requires-Dist: tree-sitter-rust>=0.23.0
+Requires-Dist: tree-sitter-go>=0.23.0
+Requires-Dist: tree-sitter-c-sharp>=0.23.0
+Requires-Dist: tree-sitter-php>=0.23.0
+Requires-Dist: tree-sitter-lua>=0.1.0
+Requires-Dist: opentelemetry-api>=1.14
+Requires-Dist: opentelemetry-sdk>=1.14
+Requires-Dist: opentelemetry-exporter-otlp-proto-grpc>=1.14
+Requires-Dist: opentelemetry-instrumentation-asyncio>=0.61b0
+Requires-Dist: loguru>=0.7.3
+Requires-Dist: cryptography>=42.0.0
+Requires-Dist: argon2-cffi>=23.0.0
+Requires-Dist: lark-oapi>=1.5.3
+Requires-Dist: pandas>=2.3.3
+Provides-Extra: test
+Requires-Dist: pytest>=7.0.0; extra == "test"
+Requires-Dist: pytest-asyncio>=0.21.0; extra == "test"
+Requires-Dist: boto3>=1.42.44; extra == "test"
+Requires-Dist: pytest-cov>=4.0.0; extra == "test"
+Requires-Dist: ragas>=0.1.0; extra == "test"
+Requires-Dist: datasets>=2.0.0; extra == "test"
+Requires-Dist: pandas>=2.0.0; extra == "test"
+Requires-Dist: diff-match-patch>=20200713; extra == "test"
+Requires-Dist: hvac>=2.0.0; extra == "test"
+Provides-Extra: dev
+Requires-Dist: mypy>=1.0.0; extra == "dev"
+Requires-Dist: ruff>=0.1.0; extra == "dev"
+Requires-Dist: setuptools_scm>=10.0.0; extra == "dev"
+Provides-Extra: doc
+Requires-Dist: sphinx>=7.0.0; extra == "doc"
+Requires-Dist: sphinx-rtd-theme>=1.3.0; extra == "doc"
+Requires-Dist: myst-parser>=2.0.0; extra == "doc"
+Provides-Extra: eval
+Requires-Dist: ragas>=0.1.0; extra == "eval"
+Requires-Dist: datasets>=2.0.0; extra == "eval"
+Requires-Dist: pandas>=2.0.0; extra == "eval"
+Provides-Extra: gemini
+Requires-Dist: google-genai>=1.0.0; extra == "gemini"
+Provides-Extra: gemini-async
+Requires-Dist: google-genai>=1.0.0; extra == "gemini-async"
+Requires-Dist: anyio>=4.0.0; extra == "gemini-async"
+Provides-Extra: ocr
+Requires-Dist: pytesseract>=0.3.10; extra == "ocr"
+Provides-Extra: build
+Requires-Dist: setuptools>=61.0; extra == "build"
+Requires-Dist: setuptools-scm>=8.0; extra == "build"
+Requires-Dist: cmake>=3.15; extra == "build"
+Requires-Dist: wheel; extra == "build"
+Requires-Dist: build; extra == "build"
+Provides-Extra: bot
+Requires-Dist: pydantic-settings>=2.0.0; extra == "bot"
+Requires-Dist: websockets>=12.0; extra == "bot"
+Requires-Dist: websocket-client>=1.6.0; extra == "bot"
+Requires-Dist: httpx[socks]>=0.25.0; extra == "bot"
+Requires-Dist: readability-lxml>=0.8.0; extra == "bot"
+Requires-Dist: rich>=13.0.0; extra == "bot"
+Requires-Dist: croniter>=2.0.0; extra == "bot"
+Requires-Dist: socksio>=1.0.0; extra == "bot"
+Requires-Dist: python-socketio>=5.11.0; extra == "bot"
+Requires-Dist: msgpack>=1.0.8; extra == "bot"
+Requires-Dist: python-socks[asyncio]>=2.4.0; extra == "bot"
+Requires-Dist: prompt-toolkit>=3.0.0; extra == "bot"
+Requires-Dist: pygments>=2.16.0; extra == "bot"
+Requires-Dist: html2text>=2020.1.16; extra == "bot"
+Requires-Dist: beautifulsoup4>=4.12.0; extra == "bot"
+Requires-Dist: ddgs>=9.0.0; extra == "bot"
+Requires-Dist: tavily-python>=0.5.0; extra == "bot"
+Requires-Dist: gradio>=6.6.0; extra == "bot"
+Requires-Dist: py-machineid>=1.0.0; extra == "bot"
+Provides-Extra: bot-langfuse
+Requires-Dist: langfuse>=3.0.0; extra == "bot-langfuse"
+Provides-Extra: bot-telegram
+Requires-Dist: python-telegram-bot[socks]>=21.0; extra == "bot-telegram"
+Provides-Extra: bot-feishu
+Requires-Dist: lark-oapi>=1.0.0; extra == "bot-feishu"
+Provides-Extra: bot-dingtalk
+Requires-Dist: dingtalk-stream>=0.4.0; extra == "bot-dingtalk"
+Provides-Extra: bot-slack
+Requires-Dist: slack-sdk>=3.26.0; extra == "bot-slack"
+Provides-Extra: bot-qq
+Requires-Dist: qq-botpy>=1.0.0; extra == "bot-qq"
+Provides-Extra: bot-sandbox
+Requires-Dist: opensandbox>=0.1.0; extra == "bot-sandbox"
+Requires-Dist: opensandbox-server>=0.1.0; extra == "bot-sandbox"
+Requires-Dist: agent-sandbox>=0.0.23; extra == "bot-sandbox"
+Provides-Extra: bot-fuse
+Requires-Dist: fusepy>=3.0.1; extra == "bot-fuse"
+Provides-Extra: bot-opencode
+Requires-Dist: opencode-ai>=0.1.0a0; extra == "bot-opencode"
+Provides-Extra: bot-full
+Requires-Dist: contextflow[bot,bot-dingtalk,bot-feishu,bot-fuse,bot-langfuse,bot-opencode,bot-qq,bot-sandbox,bot-slack,bot-telegram]; extra == "bot-full"
+Provides-Extra: benchmark
+Requires-Dist: langchain>=1.0.0; extra == "benchmark"
+Requires-Dist: langchain-core>=1.0.0; extra == "benchmark"
+Requires-Dist: langchain-openai>=1.0.0; extra == "benchmark"
+Requires-Dist: tiktoken>=0.5.0; extra == "benchmark"
+Requires-Dist: datasets>=2.0.0; extra == "benchmark"
+Requires-Dist: pandas>=2.0.0; extra == "benchmark"
+Dynamic: license-file
+
+# ContextFlow
+
+Agent-native context database. Solves context window exhaustion via a structured knowledge brain.
+
+## 🎯 Goal
+
+ContextFlow minimizes token usage and prevents context "drift" by providing AI agents with a **"Query-then-Dive"** navigation pattern. Instead of stuffing entire files into a prompt, agents search a semantic index of summaries and only "dive" into the raw source code when needed.
+
+---
+
+## 🚀 Getting Started
+
+### Prerequisites
+
+- **Python**: $\ge$ 3.10
+- **Rust Toolchain**: Required for the core CLI build.
+- **CMake**: $\ge$ 3.15
+
+### Installation
+
+```bash
+pip install .
+# or using uv
+uv pip install .
+```
+
+### Initialization
+
+Build the knowledge brain for your project:
+
+```bash
+python -m contextflow.cli init .
+```
+
+**Common Flags:**
+
+- `--force`: Clear existing hashes and perform a complete rebuild.
+- `--mode local`: Use local embeddings (fastembed) instead of OpenAI.
+- `--install-hooks`: Automatically set up git post-commit hooks to keep the brain in sync.
+
+### Usage (Agent Workflow)
+
+The intended workflow for an AI agent is:
+
+1. **Query**: Search for a concept or symbol.
+
+   ```bash
+   python -m contextflow.cli query "how is auth handled" --json
+   ```
+
+   _Returns a list of `contextflow://` URIs and their L0 summaries._
+
+2. **Dive**: Retrieve the actual source code for a specific URI.
+
+   ```bash
+   python -m contextflow.cli dive "contextflow://src/auth.py#login_user" --json
+   ```
+
+   _Returns the full raw content of the file or the specific symbol._
+
+3. **Sync**: Refresh the index after changes.
+   ```bash
+   python -m contextflow.cli init .
+   ```
+
+---
+
+## 🧠 Under the Hood
+
+ContextFlow implements a hierarchical indexing strategy to balance precision and context.
+
+### 1. Hierarchical Indexing (L0 $\to$ L1 $\to$ L2)
+
+- **L0 (Vector Layer)**: Granular summaries of symbols (functions, classes). These are stored as `.l0.txt` files and embedded into a **LanceDB** vector table.
+- **L1 (Orientation Layer)**: Directory-level overviews (`.l1.txt`) that describe the purpose of a folder. When an agent finds an L0 match, the corresponding L1 overview is provided to give the agent "spatial orientation" in the codebase.
+- **L2 (Source Layer)**: The raw source code on disk. This is only accessed during a `dive` operation.
+
+### 2. The Retrieval Pipeline
+
+ContextFlow doesn't just do simple vector search; it uses a **Retrieve & Re-rank** pipeline:
+
+1. **HyDE (Hypothetical Document Embeddings)**: For natural language questions, OpenViking generates a "fake" answer first and uses _that_ to search the vector space, significantly improving hit rates.
+2. **Over-fetching**: The system fetches more candidates than requested (typically 6x).
+3. **Re-ranking**: A cross-encoder reranker scores the candidates against the original query to ensure the top results are the most relevant.
+
+### 3. The `viking://` URI
+
+The `contextflow://` protocol is the primary pointer in the system.
+
+- `contextflow://path/to/file.py` $\to$ Points to a whole file.
+- `contextflow://path/to/file.py#symbol` $\to$ Points to a specific function/class.
+  The `Brain` resolver ensures these URIs are resolved safely within the project root.
+
+### 4. Incremental Syncing
+
+To avoid rebuilding the entire brain on every change:
+
+- **Git Tracking**: Uses `git ls-files` to identify tracked files.
+- **Hash Tracking**: Maintains a store of file hashes. Only modified files are re-indexed.
+- **Upsert**: Uses LanceDB's `merge_insert` to update existing vectors or insert new ones without duplicating entries.
+
+### 5. Memory System
+
+Beyond code, ContextFlow tracks "Truths"—persistent memories of project decisions, user preferences, and architectural constraints stored as markdown files in `.ov_brain/memories/`.

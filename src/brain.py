@@ -23,8 +23,8 @@ class Brain:
     # ------------------------------------------------------------------
 
     def resolve_uri(self, uri: str) -> str:
-        if uri.startswith("viking://"):
-            path_part = uri[len("viking://"):]
+        if uri.startswith("contextflow://"):
+            path_part = uri[len("contextflow://"):]
             # Strip anchor (#symbol) before resolving the file path
             path_part = path_part.split("#")[0]
             path_part = path_part.lstrip("/")
@@ -158,7 +158,7 @@ class Brain:
     def dive(self, uri: str) -> str:
         """Resolve a URI and return the raw source content (L2).
 
-        Supports anchored URIs (viking://path/file.py#symbol_name) — if the anchor
+        Supports anchored URIs (contextflow://path/file.py#symbol_name) — if the anchor
         matches a known symbol in the file, only that symbol's source is returned.
         Otherwise, the full file is returned.
         """
