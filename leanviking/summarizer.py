@@ -1,49 +1,114 @@
+import json
 import litellm
+from dataclasses import dataclass
+
+
+@dataclass
+class L0Summary:
+    """Dual-purpose summary for a single file or symbol."""
+    search_text: str   # dense keyword blurb — embedded for retrieval
+    display_text: str  # structured prose — returned to the agent
+
 
 class Summarizer:
-    def __init__(self, model: str = "gpt-5-nano"):
+    def __init__(self, model: str = "gpt-4o-mini"):
         self.model = model
 
-    async def generate_l0(self, content: str, rel_path: str = "") -> str:
+    async def generate_l0(self, content: str, rel_path: str = "") -> L0Summary:
         """
-        Takes raw file content and returns a one-sentence summary.
+        Generate a dual-purpose summary for a file or symbol chunk.
+
+        search_text: keyword-dense, synonym-rich — optimised for embedding similarity.
+        display_text: structured, line-referenced, actionable — shown to agents.
         """
         if not content or content.strip() == "":
-            return "Empty or non-functional file"
+            return L0Summary(
+                search_text="empty non-functional file no code",
+                display_text="Empty or non-functional file.",
+            )
 
         prompt = (
-            "Summarize the following line-numbered file content in exactly one sentence. "
-            "Focus on the primary purpose of the code. If the file is empty or "
-            "does not perform any functional task, return 'Empty or non-functional file'.\n\n"
-            "When referring to specific logic or components, use the format `path:line` (e.g., `src/main.py:10`).\n\n"
+            "Analyse the following source file and produce a JSON object with two keys:\n\n"
+            '- "search_text": A dense, keyword-rich phrase (≤30 words) optimised for semantic '
+            "search. Include synonyms, concept names, and related terms an engineer might use "
+            "when searching for this code. Do NOT use full sentences.\n"
+            '- "display_text": A structured summary (≤120 words) for an AI agent. Include: '
+            "primary purpose, key exports/functions/classes with their `path:line` references, "
+            "notable side effects, and any important dependencies. Use bullet points.\n\n"
+            "Respond with ONLY valid JSON — no markdown fences, no extra text.\n\n"
             f"File: {rel_path}\n"
             f"Content:\n{content}"
         )
 
         response = await litellm.acompletion(
             model=self.model,
-            messages=[{"role": "user", "content": prompt}]
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=300,
         )
-        return response.choices[0].message.content.strip()
+        raw = response.choices[0].message.content.strip()
 
-    async def generate_l1(self, folder_name: str, child_l0s: list) -> str:
+        # Strip markdown fences if the model adds them despite instructions
+        if raw.startswith("```"):
+            raw = raw.split("\n", 1)[-1].rsplit("```", 1)[0].strip()
+
+        try:
+            parsed = json.loads(raw)
+            return L0Summary(
+                search_text=str(parsed.get("search_text", "")),
+                display_text=str(parsed.get("display_text", "")),
+            )
+        except (json.JSONDecodeError, KeyError):
+            # Fallback: treat the whole response as display_text
+            return L0Summary(search_text=raw[:200], display_text=raw)
+
+    async def generate_l1(self, folder_name: str, child_l0s: list[tuple[str, str]]) -> str:
         """
-        Takes a folder name and a list of (relative_path, summary) tuples,
-        and returns a structural map of the directory.
+        Synthesise a directory-level overview from child display_text summaries.
+
+        Returns a structured map useful as orientation context for an agent.
         """
-        children_str = "\n".join([f"- {name}: {summary}" for name, summary in child_l0s])
+        children_str = "\n".join(
+            f"- {name}: {summary}" for name, summary in child_l0s
+        )
         prompt = (
-            f"Generate a structural map/overview of the directory '{folder_name}' based on its contents:\n\n"
+            f"Generate a structural overview of the directory '{folder_name}' "
+            "for an AI coding agent. Use the child summaries below.\n\n"
             f"{children_str}\n\n"
-            "Please provide the response in the following format:\n"
-            "1. A 2-3 sentence summary of the directory's overall purpose and role in the project.\n"
-            "2. A list of key components/files and their significance within this directory. "
-            "Ensure that all file references use their full relative paths as provided in the list and preserve "
-            "the `path:line` markers from the L0 summaries."
+            "Your response must include:\n"
+            "1. 2-3 sentences on the directory's overall purpose and role in the project.\n"
+            "2. The primary entry points and public interfaces exposed by this directory.\n"
+            "3. The key data flow through this directory (inputs → transforms → outputs).\n"
+            "4. A bullet list of key files/symbols with their full relative paths and "
+            "`path:line` markers from the child summaries where available.\n\n"
+            "Be specific and actionable. An agent reading this should know exactly which "
+            "file to open next without further exploration."
         )
 
         response = await litellm.acompletion(
             model=self.model,
-            messages=[{"role": "user", "content": prompt}]
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=400,
+        )
+        return response.choices[0].message.content.strip()
+
+    async def hypothetical_answer(self, query: str) -> str:
+        """
+        HyDE: generate a plausible code-level answer to a natural-language query.
+
+        The resulting text lives in the same embedding space as the indexed summaries,
+        yielding much better retrieval than embedding the raw question.
+        """
+        prompt = (
+            "A developer is searching a codebase with this query:\n"
+            f'"{query}"\n\n'
+            "Write a short hypothetical code summary (≤50 words) that would be the "
+            "ideal search result — as if describing the function or module that answers "
+            "this query. Use technical vocabulary, function names, and concept terms. "
+            "Do NOT answer the question itself; describe what the relevant code would look like."
+        )
+        response = await litellm.acompletion(
+            model=self.model,
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=100,
         )
         return response.choices[0].message.content.strip()

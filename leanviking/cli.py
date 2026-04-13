@@ -1,4 +1,5 @@
 import asyncio
+import json
 import subprocess
 from pathlib import Path
 
@@ -7,11 +8,12 @@ from leanviking.indexer import Indexer
 from leanviking.summarizer import Summarizer
 from leanviking.hash_tracker import HashTracker
 from leanviking.cli_utils import OutputManager
+from leanviking.chunker import chunk_file
 
 app = typer.Typer(help="OpenViking local brain tools.")
 
-# Global output manager — set once by the --json callback
 om = OutputManager()
+
 
 @app.callback()
 def main(
@@ -20,27 +22,19 @@ def main(
     """OpenViking local brain tools."""
     om.json_mode = json
 
-_MAX_FILE_BYTES = 64 * 1024  # 64 KB
-
 
 def _read_source_file(path: Path) -> str | None:
-    """Read a text file for summarization. Returns None for binary or oversized files.
-    Returns content with line numbers prefixed.
-    """
+    """Read a text file. Returns None for binary files. No size limit — chunker handles large files."""
     try:
-        if path.stat().st_size > _MAX_FILE_BYTES:
-            return None
         raw = path.read_bytes()
-        if b"\x00" in raw:  # NUL byte → binary file
+        if b"\x00" in raw:  # NUL byte → binary
             return None
-        text = raw.decode("utf-8", errors="ignore")
-        return "\n".join(f"{i+1}: {line}" for i, line in enumerate(text.splitlines()))
+        return raw.decode("utf-8", errors="ignore")
     except (OSError, IsADirectoryError):
         return None
 
 
 def _install_git_hooks(root: Path):
-    """Install a post-commit hook that triggers ov-init."""
     hook_path = root / ".git" / "hooks" / "post-commit"
     hook_content = f"""#!/bin/sh
 echo "OpenViking: syncing brain after commit..."
@@ -75,7 +69,6 @@ async def _init_async(root: Path, mode: str, install_hooks: bool, force: bool):
     tracker = HashTracker(brain_dir)
     summarizer = Summarizer()
 
-    # Crawl project files via git (respects .gitignore automatically)
     result = subprocess.run(
         ["git", "ls-files", "--others", "--cached", "--exclude-standard"],
         cwd=root,
@@ -83,26 +76,23 @@ async def _init_async(root: Path, mode: str, install_hooks: bool, force: bool):
         text=True,
     )
     if result.returncode != 0:
-        typer.echo(
-            f"Error: git ls-files failed: {result.stderr.strip()}", err=True
-        )
+        typer.echo(f"Error: git ls-files failed: {result.stderr.strip()}", err=True)
         raise typer.Exit(code=1)
     files = [f for f in result.stdout.strip().split("\n") if f]
 
     if force:
-        # Clear hashes to force a full rebuild
         hashes_file = brain_dir / "hashes.json"
         if hashes_file.exists():
             hashes_file.unlink()
 
-    # --- L0 generation (smart: update if hash changed) ---
+    # --- L0 generation (per symbol chunk, skip unchanged files) ---
+    # Each task is (coro, dest_path)
     l0_tasks = []
     l0_dest_paths = []
     changed_files = set()
 
     for rel_file in files:
         abs_file = root / rel_file
-        l0_path = abstracts_dir / f"{rel_file}.l0.txt"
 
         if not tracker.has_changed(abs_file):
             continue
@@ -112,14 +102,27 @@ async def _init_async(root: Path, mode: str, install_hooks: bool, force: bool):
         if content is None:
             continue
 
-        l0_path.parent.mkdir(parents=True, exist_ok=True)
-        l0_tasks.append(summarizer.generate_l0(content, rel_file))
-        l0_dest_paths.append(l0_path)
+        chunks = chunk_file(rel_file, content)
+
+        for chunk in chunks:
+            # URI encodes the anchor; use it as the filename key
+            anchor_suffix = f"#{chunk.anchor}" if chunk.anchor else ""
+            l0_filename = f"{rel_file}{anchor_suffix}.l0.txt"
+            l0_path = abstracts_dir / l0_filename
+            l0_path.parent.mkdir(parents=True, exist_ok=True)
+
+            l0_tasks.append(summarizer.generate_l0(chunk.source, f"{rel_file}:{chunk.start_line}"))
+            l0_dest_paths.append((l0_path, chunk.uri))
 
     if l0_tasks:
         summaries = await asyncio.gather(*l0_tasks)
-        for path, summary in zip(l0_dest_paths, summaries):
-            path.write_text(summary)
+        for (path, uri), summary in zip(l0_dest_paths, summaries):
+            # Store as JSON with both fields + the URI for traceability
+            path.write_text(json.dumps({
+                "uri": uri,
+                "search_text": summary.search_text,
+                "display_text": summary.display_text,
+            }, ensure_ascii=False))
 
     # --- L1 synthesis: update if any child file changed ---
     dirs_to_files: dict[str, list[str]] = {}
@@ -135,9 +138,25 @@ async def _init_async(root: Path, mode: str, install_hooks: bool, force: bool):
 
         child_l0s = []
         for rel_file in dir_files:
-            l0_path = abstracts_dir / f"{rel_file}.l0.txt"
-            if l0_path.exists():
-                child_l0s.append((rel_file, l0_path.read_text()))
+            # Collect the first (file-level) L0 for each file, or any chunk
+            # Prefer whole-file chunk (no anchor), fall back to first available
+            file_l0_path = abstracts_dir / f"{rel_file}.l0.txt"
+            if file_l0_path.exists():
+                try:
+                    data = json.loads(file_l0_path.read_text())
+                    child_l0s.append((rel_file, data.get("display_text", "")))
+                except Exception:
+                    pass
+            else:
+                # Find any chunk L0 for this file
+                pattern = f"{rel_file}#*.l0.txt"
+                for p in sorted(abstracts_dir.glob(pattern)):
+                    try:
+                        data = json.loads(p.read_text())
+                        child_l0s.append((rel_file, data.get("display_text", "")))
+                    except Exception:
+                        pass
+                    break  # Only use the first chunk for L1 synthesis
 
         if not child_l0s or not dir_changed:
             continue
@@ -159,8 +178,7 @@ async def _init_async(root: Path, mode: str, install_hooks: bool, force: bool):
     tracker.save()
 
     # --- Rebuild vector index ---
-    from leanviking.embedder import get_embedder, _DEFAULT_REMOTE_MODEL, _DEFAULT_LOCAL_MODEL
-    # Detect embedding mode change to prevent dimension mismatch in LanceDB
+    from leanviking.embedder import get_embedder
     mode_file = brain_dir / "embedding_mode"
     prev_mode = mode_file.read_text().strip() if mode_file.exists() else None
     if prev_mode and prev_mode != mode and not force:
@@ -203,8 +221,6 @@ def query(
     """Search the brain for context relevant to a topic."""
     from leanviking.brain import Brain
     brain = Brain(project_root)
-
-    # Always sync before searching — both modes get fresh results
     brain.sync_index()
     l0_uris = brain.indexer.search(query_text, top_k=top_k)
 
@@ -214,14 +230,19 @@ def query(
         return
 
     if om.json_mode:
+        display_texts = brain.indexer.get_display_texts(l0_uris)
         results = []
         for uri in l0_uris:
             l1_path = brain._get_l1_path(brain.resolve_uri(uri))
             try:
-                summary = l1_path.read_text()
+                l1_summary = l1_path.read_text()
             except Exception:
-                summary = None
-            results.append({"uri": uri, "summary": summary})
+                l1_summary = None
+            results.append({
+                "uri": uri,
+                "display_text": display_texts.get(uri),
+                "l1_summary": l1_summary,
+            })
         om.add_data("results", results)
     else:
         context = brain.get_context(query_text, top_k=top_k)
@@ -238,7 +259,6 @@ def dive(
     """Read the full source of a viking:// URI found in a brain query."""
     from leanviking.brain import Brain
     brain = Brain(project_root)
-
     content = brain.dive(uri)
 
     if om.json_mode:
