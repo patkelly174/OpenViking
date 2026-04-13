@@ -9,6 +9,21 @@ from leanviking.summarizer import Summarizer
 
 app = typer.Typer(help="OpenViking local brain tools.")
 
+_MAX_FILE_BYTES = 64 * 1024  # 64 KB
+
+
+def _read_source_file(path: Path) -> str | None:
+    """Read a text file for summarization. Returns None for binary or oversized files."""
+    try:
+        if path.stat().st_size > _MAX_FILE_BYTES:
+            return None
+        raw = path.read_bytes()
+        if b"\x00" in raw:  # NUL byte → binary file
+            return None
+        return raw.decode("utf-8", errors="ignore")
+    except (OSError, IsADirectoryError):
+        return None
+
 
 @app.command()
 def init(
@@ -53,9 +68,8 @@ async def _init_async(root: Path):
         if l0_path.exists():
             continue  # semiautomatic: keep the committed version
 
-        try:
-            content = abs_file.read_text(errors="ignore")
-        except (OSError, IsADirectoryError):
+        content = _read_source_file(abs_file)
+        if content is None:
             continue
 
         l0_path.parent.mkdir(parents=True, exist_ok=True)

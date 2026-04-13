@@ -82,3 +82,29 @@ def test_ov_init_calls_rebuild_index(tmp_path):
 
     assert result.exit_code == 0, result.output
     mock_indexer.rebuild_index.assert_called_once()
+
+
+def test_ov_init_skips_binary_files(tmp_path):
+    """Binary files (containing NUL bytes) should not be passed to the summarizer."""
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src" / "binary.bin").write_bytes(b"\x00\x01\x02binary data")
+    (tmp_path / "src" / "main.py").write_text("def main(): pass")
+
+    with (
+        patch("leanviking.cli.subprocess.run") as mock_run,
+        patch("leanviking.cli.Summarizer") as MockSummarizer,
+        patch("leanviking.cli.Indexer") as MockIndexer,
+    ):
+        mock_run.return_value.stdout = "src/binary.bin\nsrc/main.py\n"
+        mock_run.return_value.returncode = 0
+
+        instance = MockSummarizer.return_value
+        instance.generate_l0 = AsyncMock(return_value="Entry point")
+        instance.generate_l1 = AsyncMock(return_value="Overview")
+        MockIndexer.return_value.rebuild_index = MagicMock()
+
+        result = runner.invoke(app, [str(tmp_path)])
+
+    assert result.exit_code == 0, result.output
+    # generate_l0 should only be called once (for main.py, not binary.bin)
+    instance.generate_l0.assert_called_once()

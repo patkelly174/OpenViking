@@ -1,5 +1,6 @@
 from pathlib import Path
 import os
+import warnings
 
 class Brain:
     def __init__(self, project_root=None):
@@ -26,22 +27,31 @@ class Brain:
         return uri
 
     def get_context(self, query: str, top_k: int = 3, include_l2: bool = False) -> str:
-        # Sensing: L0 search returns viking:// URIs
         l0_uris = self.indexer.search(query, top_k=top_k)
 
         context_blocks = []
+        seen_l1: set[str] = set()
+        seen_l2: set[str] = set()
+
         for uri in l0_uris:
-            resolved = self.resolve_uri(uri)  # absolute path to source file
+            resolved = self.resolve_uri(uri)
 
-            # Positioning: load L1 overview for the containing directory
+            # L1: directory overview (deduplicated)
             l1_path = self._get_l1_path(resolved)
-            try:
-                context_blocks.append(l1_path.read_text())
-            except (FileNotFoundError, IOError):
-                pass
+            l1_key = str(l1_path)
+            if l1_key not in seen_l1:
+                seen_l1.add(l1_key)
+                try:
+                    context_blocks.append(l1_path.read_text())
+                except (FileNotFoundError, IOError):
+                    warnings.warn(
+                        f"L1 overview not found: {l1_path}. Run 'ov-init' to generate it.",
+                        stacklevel=2,
+                    )
 
-            # Execution: raw source (L2) — only when caller asks
-            if include_l2:
+            # L2: raw source (deduplicated, only when requested)
+            if include_l2 and resolved not in seen_l2:
+                seen_l2.add(resolved)
                 try:
                     context_blocks.append(Path(resolved).read_text())
                 except (FileNotFoundError, IOError):
@@ -57,7 +67,9 @@ class Brain:
 
         # If it's a file, we want the overview of its containing directory
         # Use suffix check instead of is_file() to avoid disk hits and handle virtual paths
-        if p.suffix != '' or not p.is_dir():
+        # Paths with a file extension are treated as files; extensionless paths as dirs.
+        # This avoids disk hits on virtual/non-existent paths in the index.
+        if p.suffix:
             target_dir = p.parent
         else:
             target_dir = p

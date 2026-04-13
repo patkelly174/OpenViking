@@ -60,3 +60,21 @@ def test_get_context_excludes_l2_by_default(tmp_path):
 
     # Only one block — no L2
     assert result == "L1 Only"
+
+
+def test_get_context_deduplicates_l1(tmp_path):
+    """Multiple URIs from the same directory should return the L1 overview only once."""
+    brain = Brain(project_root=str(tmp_path))
+    brain.indexer = MagicMock()
+    # Three files in the same directory
+    brain.indexer.search.return_value = [
+        "viking://src/a.py",
+        "viking://src/b.py",
+        "viking://src/c.py",
+    ]
+
+    with patch("pathlib.Path.read_text", return_value="L1 Overview"):
+        result = brain.get_context("query", top_k=3)
+
+    # L1 should appear exactly once, not three times
+    assert result.count("L1 Overview") == 1
