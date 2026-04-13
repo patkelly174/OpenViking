@@ -1,11 +1,9 @@
 import json
 import os
 from pathlib import Path
-from typing import Optional, cast
+from typing import Optional
 
 import litellm
-from litellm import ModelResponse
-from litellm.types.utils import Choices
 
 
 class Memory:
@@ -25,11 +23,11 @@ class Memory:
             "  - 'content': the truth as a single sentence\n\n"
             f"Transcript:\n{transcript}"
         )
-        response = cast(ModelResponse, await litellm.acompletion(
+        response = await litellm.acompletion(
             model=model,
             messages=[{"role": "user", "content": prompt}],
-        ))
-        raw = (cast(Choices, response.choices[0]).message.content or "").strip()
+        )
+        raw = (response.choices[0].message.content or "").strip()  # type: ignore[union-attr]
 
         # Strip markdown code fences that some LLMs add
         if raw.startswith("```"):

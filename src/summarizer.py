@@ -1,8 +1,5 @@
 import json
-from typing import cast
 import litellm
-from litellm import ModelResponse
-from litellm.types.utils import Choices
 from dataclasses import dataclass
 
 
@@ -43,12 +40,12 @@ class Summarizer:
             f"Content:\n{content}"
         )
 
-        response = cast(ModelResponse, await litellm.acompletion(
+        response = await litellm.acompletion(
             model=self.model,
             messages=[{"role": "user", "content": prompt}],
             max_tokens=300,
-        ))
-        raw = (cast(Choices, response.choices[0]).message.content or "").strip()
+        )
+        raw = (response.choices[0].message.content or "").strip()  # type: ignore[union-attr]
 
         # Strip markdown fences if the model adds them despite instructions
         if raw.startswith("```"):
@@ -87,31 +84,9 @@ class Summarizer:
             "file to open next without further exploration."
         )
 
-        response = cast(ModelResponse, await litellm.acompletion(
+        response = await litellm.acompletion(
             model=self.model,
             messages=[{"role": "user", "content": prompt}],
             max_tokens=400,
-        ))
-        return (cast(Choices, response.choices[0]).message.content or "").strip()
-
-    async def hypothetical_answer(self, query: str) -> str:
-        """
-        HyDE: generate a plausible code-level answer to a natural-language query.
-
-        The resulting text lives in the same embedding space as the indexed summaries,
-        yielding much better retrieval than embedding the raw question.
-        """
-        prompt = (
-            "A developer is searching a codebase with this query:\n"
-            f'"{query}"\n\n'
-            "Write a short hypothetical code summary (≤50 words) that would be the "
-            "ideal search result — as if describing the function or module that answers "
-            "this query. Use technical vocabulary, function names, and concept terms. "
-            "Do NOT answer the question itself; describe what the relevant code would look like."
         )
-        response = cast(ModelResponse, await litellm.acompletion(
-            model=self.model,
-            messages=[{"role": "user", "content": prompt}],
-            max_tokens=100,
-        ))
-        return (cast(Choices, response.choices[0]).message.content or "").strip()
+        return (response.choices[0].message.content or "").strip()  # type: ignore[union-attr]

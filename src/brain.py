@@ -11,7 +11,7 @@ class Brain:
         self.tracker = HashTracker(self.brain_dir)
         from src.indexer import Indexer
         self.indexer = Indexer(str(self.project_root))
-        self._summarizer = None  # lazy — only needed for HyDE
+
 
     # ------------------------------------------------------------------
     # URI handling

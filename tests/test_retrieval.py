@@ -27,9 +27,7 @@ def test_get_context_returns_l0_and_l1(tmp_path):
 
     assert "main.py: entry point" in result
     assert "src/ — application source code." in result
-    brain.indexer.search.assert_called_once_with(
-        brain._hyde_query("query"), top_k=3
-    )
+    brain.indexer.search.assert_called_once_with("query", top_k=3)
 
 
 def test_get_context_deduplicates_l1(tmp_path):
@@ -109,17 +107,3 @@ def test_get_context_warns_on_missing_l1(tmp_path):
     with pytest.warns(UserWarning, match="L1 overview not found"):
         brain.get_context("query")
 
-
-def test_hyde_non_question_passthrough(tmp_path):
-    brain = Brain(project_root=str(tmp_path))
-    result = brain._hyde_query("verify_token JWT middleware")
-    # Not a question — should return unchanged
-    assert result == "verify_token JWT middleware"
-
-
-def test_hyde_question_detected(tmp_path):
-    brain = Brain(project_root=str(tmp_path))
-    # Questions start with question words
-    assert brain._is_question("how does auth work?") is True
-    assert brain._is_question("where is verify_token") is True
-    assert brain._is_question("verify_token JWT") is False

@@ -76,16 +76,3 @@ async def test_generate_l1():
 
     assert "main.py" in overview
     assert overview == "Overview of src: entry via main.py, helpers in utils.py."
-
-
-@pytest.mark.asyncio
-async def test_hypothetical_answer():
-    s = Summarizer()
-
-    mock_response = MagicMock()
-    mock_response.choices[0].message.content = "verify_token function JWT validation auth middleware"
-
-    with patch("litellm.acompletion", new_callable=AsyncMock, return_value=mock_response):
-        result = await s.hypothetical_answer("how is JWT validated?")
-
-    assert "JWT" in result or "verify_token" in result
