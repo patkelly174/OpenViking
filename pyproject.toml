@@ -61,7 +61,7 @@ dependencies = [
     "litellm>=1.0.0,<1.83.1",
     "lancedb>=0.17.0",
     "pyarrow>=14.0.0",
-    "numpy>=1.24.0",
+    "numpy>=1.26.0",
     "python-multipart>=0.0.22",
     "tree-sitter>=0.23.0",
     "tree-sitter-python>=0.23.0",
@@ -237,7 +237,7 @@ python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
 asyncio_mode = "auto"
-addopts = "-v --cov=openviking --cov-report=term-missing"
+addopts = "-v --cov=openviking --cov=leanviking --cov-report=term-missing"
 
 [tool.ruff]
 line-length = 100

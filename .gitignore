@@ -197,4 +197,4 @@ specs/
 .trae/
 
 # leanviking runtime index (LanceDB, not portable)
-.ov_brain/index/
+/.ov_brain/index/
