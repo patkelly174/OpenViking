@@ -25,21 +25,27 @@ class Brain:
             return str(resolved_path)
         return uri
 
-    def get_context(self, query: str, top_k=3) -> str:
-        # Sensing: L0 Search
-        l0_paths = self.indexer.search(query, top_k=top_k)
+    def get_context(self, query: str, top_k: int = 3, include_l2: bool = False) -> str:
+        # Sensing: L0 search returns viking:// URIs
+        l0_uris = self.indexer.search(query, top_k=top_k)
 
         context_blocks = []
-        for path in l0_paths:
-            # Positioning: L0 -> L1 jump
-            # Resolve URI first to get a real path
-            resolved_path = self.resolve_uri(path)
-            l1_path = self._get_l1_path(resolved_path)
+        for uri in l0_uris:
+            resolved = self.resolve_uri(uri)  # absolute path to source file
+
+            # Positioning: load L1 overview for the containing directory
+            l1_path = self._get_l1_path(resolved)
             try:
-                content = l1_path.read_text()
-                context_blocks.append(content)
+                context_blocks.append(l1_path.read_text())
             except (FileNotFoundError, IOError):
-                continue
+                pass
+
+            # Execution: raw source (L2) — only when caller asks
+            if include_l2:
+                try:
+                    context_blocks.append(Path(resolved).read_text())
+                except (FileNotFoundError, IOError):
+                    pass
 
         return "\n\n".join(context_blocks)
 
