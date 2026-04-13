@@ -32,7 +32,9 @@ class Brain:
         context_blocks = []
         for path in l0_paths:
             # Positioning: L0 -> L1 jump
-            l1_path = self._get_l1_path(path)
+            # Resolve URI first to get a real path
+            resolved_path = self.resolve_uri(path)
+            l1_path = self._get_l1_path(resolved_path)
             try:
                 content = l1_path.read_text()
                 context_blocks.append(content)
@@ -48,10 +50,8 @@ class Brain:
             p = self.project_root / p
 
         # If it's a file, we want the overview of its containing directory
-        if p.is_file() or not p.is_dir():
-            # We don't check is_file() on disk because it might be a virtual path
-            # or the file might not exist yet. We treat it as a file if it has an extension
-            # or if we just want the parent's overview.
+        # Use suffix check instead of is_file() to avoid disk hits and handle virtual paths
+        if p.suffix != '' or not p.is_dir():
             target_dir = p.parent
         else:
             target_dir = p
