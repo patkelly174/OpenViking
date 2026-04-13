@@ -14,7 +14,7 @@ def test_ov_init_creates_brain_dirs(tmp_path):
     (tmp_path / "src" / "main.py").write_text("def main(): pass")
 
     with (
-        patch("subprocess.run") as mock_run,
+        patch("leanviking.cli.subprocess.run") as mock_run,
         patch("leanviking.cli.Summarizer") as MockSummarizer,
         patch("leanviking.cli.Indexer") as MockIndexer,
     ):
@@ -46,7 +46,7 @@ def test_ov_init_skips_existing_l0(tmp_path):
     existing_l0.write_text("Existing summary — should not be replaced")
 
     with (
-        patch("subprocess.run") as mock_run,
+        patch("leanviking.cli.subprocess.run") as mock_run,
         patch("leanviking.cli.Summarizer") as MockSummarizer,
         patch("leanviking.cli.Indexer") as MockIndexer,
     ):
@@ -67,7 +67,7 @@ def test_ov_init_skips_existing_l0(tmp_path):
 
 def test_ov_init_calls_rebuild_index(tmp_path):
     with (
-        patch("subprocess.run") as mock_run,
+        patch("leanviking.cli.subprocess.run") as mock_run,
         patch("leanviking.cli.Summarizer") as MockSummarizer,
         patch("leanviking.cli.Indexer") as MockIndexer,
     ):
@@ -78,6 +78,7 @@ def test_ov_init_calls_rebuild_index(tmp_path):
         MockSummarizer.return_value.generate_l1 = AsyncMock(return_value="s")
         mock_indexer = MockIndexer.return_value
 
-        runner.invoke(app, [str(tmp_path)])
+        result = runner.invoke(app, [str(tmp_path)])
 
+    assert result.exit_code == 0, result.output
     mock_indexer.rebuild_index.assert_called_once()

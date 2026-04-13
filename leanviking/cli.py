@@ -35,6 +35,11 @@ async def _init_async(root: Path):
         capture_output=True,
         text=True,
     )
+    if result.returncode != 0:
+        typer.echo(
+            f"Error: git ls-files failed: {result.stderr.strip()}", err=True
+        )
+        raise typer.Exit(code=1)
     files = [f for f in result.stdout.strip().split("\n") if f]
 
     # --- L0 generation (semiautomatic: skip if .l0.txt already exists) ---
