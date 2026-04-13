@@ -111,6 +111,72 @@ def test_get_display_texts(tmp_path):
     assert texts["contextflow://foo.py"] == "Foo does bar."
 
 
+def test_get_display_texts_empty_list(tmp_path):
+    indexer = Indexer(project_root=str(tmp_path), embedder=_make_embedder())
+    assert indexer.get_display_texts([]) == {}
+
+
+def test_get_display_texts_missing_uri_omitted(tmp_path):
+    abstracts_dir = tmp_path / ".ov_brain" / "abstracts"
+    abstracts_dir.mkdir(parents=True)
+    _write_l0(abstracts_dir / "foo.py.l0.txt", "foo search", "Foo.", uri="contextflow://foo.py")
+
+    indexer = Indexer(project_root=str(tmp_path), embedder=_make_embedder())
+    indexer.rebuild_index()
+    texts = indexer.get_display_texts(["contextflow://does_not_exist.py"])
+    assert texts == {}
+
+
+def test_get_display_texts_uri_with_single_quote(tmp_path):
+    abstracts_dir = tmp_path / ".ov_brain" / "abstracts"
+    abstracts_dir.mkdir(parents=True)
+    uri = "contextflow://foo's_module.py"
+    _write_l0(abstracts_dir / "foos_module.py.l0.txt", "foo search", "Foo's module.", uri=uri)
+
+    indexer = Indexer(project_root=str(tmp_path), embedder=_make_embedder())
+    indexer.rebuild_index()
+    texts = indexer.get_display_texts([uri])
+    assert texts[uri] == "Foo's module."
+
+
+def test_keyword_search_single_quote_in_query_finds_results(tmp_path):
+    abstracts_dir = tmp_path / ".ov_brain" / "abstracts"
+    abstracts_dir.mkdir(parents=True)
+    _write_l0(
+        abstracts_dir / "auth.py.l0.txt",
+        search_text="authentication login credentials",
+        display_text="Auth module.",
+        uri="contextflow://auth.py",
+    )
+
+    indexer = Indexer(project_root=str(tmp_path), embedder=_make_embedder())
+    indexer.rebuild_index()
+    table = indexer.db.open_table("l0_index")
+
+    # Single quote causes SQL syntax error → currently silently returns []
+    results = indexer._keyword_search("authentication's login", table)
+    assert "contextflow://auth.py" in results
+
+
+def test_keyword_search_percent_does_not_match_unrelated_docs(tmp_path):
+    abstracts_dir = tmp_path / ".ov_brain" / "abstracts"
+    abstracts_dir.mkdir(parents=True)
+    _write_l0(
+        abstracts_dir / "rates.py.l0.txt",
+        search_text="transfer speed measurement",
+        display_text="Rates module.",
+        uri="contextflow://rates.py",
+    )
+
+    indexer = Indexer(project_root=str(tmp_path), embedder=_make_embedder())
+    indexer.rebuild_index()
+    table = indexer.db.open_table("l0_index")
+
+    # "%" as query — LIKE '%%%' currently acts as wildcard matching everything
+    results = indexer._keyword_search("%", table)
+    assert "contextflow://rates.py" not in results
+
+
 def test_search_with_reranker(tmp_path):
     abstracts_dir = tmp_path / ".ov_brain" / "abstracts"
     abstracts_dir.mkdir(parents=True)

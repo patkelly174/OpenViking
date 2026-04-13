@@ -8,7 +8,7 @@ class Brain:
     def __init__(self, project_root=None):
         self.project_root = Path(project_root or os.getcwd()).resolve()
         self.brain_dir = self.project_root / ".ov_brain"
-        self.tracker = HashTracker(self.brain_dir)
+        self.tracker = HashTracker(self.brain_dir, project_root=self.project_root)
         from src.indexer import Indexer
         self.indexer = Indexer(str(self.project_root))
 
@@ -20,15 +20,16 @@ class Brain:
     def resolve_uri(self, uri: str) -> str:
         if uri.startswith("contextflow://"):
             path_part = uri[len("contextflow://"):]
-            # Strip anchor (#symbol) before resolving the file path
             path_part = path_part.split("#")[0]
+            if "\x00" in path_part:
+                raise ValueError("Null byte in URI path")
             path_part = path_part.lstrip("/")
+            normalized = os.path.normpath(path_part) if path_part else "."
+            if any(seg == ".." for seg in normalized.split(os.sep)):
+                raise ValueError("Path traversal detected in URI path")
             resolved_path = (self.project_root / path_part).resolve()
             if not resolved_path.is_relative_to(self.project_root):
-                raise ValueError(
-                    f"Resolved path {resolved_path} is outside the project root "
-                    f"{self.project_root}"
-                )
+                raise ValueError("Path traversal detected: resolved path is outside the project root")
             return str(resolved_path)
         return uri
 

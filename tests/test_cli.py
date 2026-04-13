@@ -53,8 +53,8 @@ def test_ov_init_skips_unchanged_files(tmp_path):
     from src.hash_tracker import HashTracker, calculate_hash
     brain_dir = tmp_path / ".ov_brain"
     brain_dir.mkdir(parents=True)
-    tracker = HashTracker(brain_dir)
-    tracker.hashes[str(src_file)] = calculate_hash(src_file)
+    tracker = HashTracker(brain_dir, project_root=tmp_path)
+    tracker.hashes["src/main.py"] = calculate_hash(src_file)
     tracker.save()
 
     with (

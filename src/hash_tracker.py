@@ -11,14 +11,18 @@ def calculate_hash(path: Path) -> str:
     return sha256.hexdigest()
 
 class HashTracker:
-    def __init__(self, brain_dir: Path):
+    def __init__(self, brain_dir: Path, project_root: Path | None = None):
         self.hash_file = brain_dir / "hashes.json"
+        self.project_root = project_root
         self.hashes = self._load()
 
     def _load(self) -> dict:
         if self.hash_file.exists():
             try:
-                return json.loads(self.hash_file.read_text())
+                data = json.loads(self.hash_file.read_text())
+                if any(Path(k).is_absolute() for k in data):
+                    return {}
+                return data
             except json.JSONDecodeError:
                 return {}
         return {}
@@ -29,7 +33,13 @@ class HashTracker:
     def has_changed(self, path: Path) -> bool:
         if not path.exists():
             return False
-        rel_path = str(path)
+        if self.project_root is not None:
+            try:
+                rel_path = str(path.relative_to(self.project_root))
+            except ValueError:
+                rel_path = str(path)
+        else:
+            rel_path = str(path)
         current_hash = calculate_hash(path)
         if self.hashes.get(rel_path) == current_hash:
             return False

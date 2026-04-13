@@ -60,7 +60,7 @@ async def _init_async(root: Path, mode: str, install_hooks: bool, force: bool):
     abstracts_dir.mkdir(parents=True, exist_ok=True)
     overviews_dir.mkdir(parents=True, exist_ok=True)
 
-    tracker = HashTracker(brain_dir)
+    tracker = HashTracker(brain_dir, project_root=root)
     summarizer = Summarizer()
 
     result = subprocess.run(

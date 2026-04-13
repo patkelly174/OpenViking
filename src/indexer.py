@@ -116,6 +116,11 @@ class Indexer:
         df = pd.DataFrame(data)
         self.db.create_table(_INDEX_TABLE, data=df, mode="overwrite")
 
+    @staticmethod
+    def _escape_like(s: str) -> str:
+        """Escape backslash, %, and _ for use in a SQL LIKE pattern, and single quotes for SQL literals."""
+        return s.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_").replace("'", "''")
+
     def get_display_texts(self, uris: list[str]) -> dict[str, str]:
         """Return {uri: display_text} for the given URIs. Missing URIs are omitted."""
         try:
@@ -124,14 +129,13 @@ class Indexer:
             return {}
         if not uris:
             return {}
-        df = table.to_pandas()
-        result = {}
-        for uri in uris:
-            row = df[df["id"] == uri]
-            if not row.empty:
-                col = "display_text" if "display_text" in row.columns else "search_text"
-                result[uri] = row.iloc[0][col]
-        return result
+        escaped = [u.replace("'", "''") for u in uris]
+        filter_str = "id IN (" + ", ".join(f"'{e}'" for e in escaped) + ")"
+        df = table.search().where(filter_str).to_pandas()
+        if df.empty:
+            return {}
+        col = "display_text" if "display_text" in df.columns else "search_text"
+        return {row["id"]: row[col] for _, row in df.iterrows()}
 
     def search(self, query: str, top_k: int = 3) -> list[str]:
         try:
@@ -175,9 +179,11 @@ class Indexer:
 
         # Tier 1: Exact Phrase Match (Preserves ordering and specific identifier structure)
         # We search for the raw query and the lowercase version
+        eq = self._escape_like(query)
+        eql = self._escape_like(query.lower())
         phrase_filters = [
-            f"search_text LIKE '%{query}%' OR display_text LIKE '%{query}%'",
-            f"search_text LIKE '%{query.lower()}%' OR display_text LIKE '%{query.lower()}%'"
+            f"search_text LIKE '%{eq}%' OR display_text LIKE '%{eq}%'",
+            f"search_text LIKE '%{eql}%' OR display_text LIKE '%{eql}%'",
         ]
         combined_phrase_filter = " OR ".join(phrase_filters)
 
@@ -187,7 +193,8 @@ class Indexer:
 
         token_filters = []
         for token in tokens:
-            token_filters.append(f"search_text LIKE '%{token}%' OR display_text LIKE '%{token}%'")
+            et = self._escape_like(token)
+            token_filters.append(f"search_text LIKE '%{et}%' OR display_text LIKE '%{et}%'")
         combined_token_filter = " OR ".join(token_filters)
 
         merged_ids = []
