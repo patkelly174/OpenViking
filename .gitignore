@@ -195,3 +195,6 @@ examples/data/
 openviking/_version.py
 specs/
 .trae/
+
+# leanviking runtime index (LanceDB, not portable)
+.ov_brain/index/

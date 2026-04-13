@@ -59,6 +59,9 @@ dependencies = [
     "pdfminer-six>=20251230",
     "typer>=0.12.0",
     "litellm>=1.0.0,<1.83.1",
+    "lancedb>=0.17.0",
+    "pyarrow>=14.0.0",
+    "numpy>=1.24.0",
     "python-multipart>=0.0.22",
     "tree-sitter>=0.23.0",
     "tree-sitter-python>=0.23.0",
@@ -186,6 +189,7 @@ ov = "openviking_cli.rust_cli:main"  # Rust CLI 入口（极简包装器）
 openviking = "openviking_cli.rust_cli:main"  # Rust CLI 入口（放弃 python CLI）
 openviking-server = "openviking_cli.server_bootstrap:main"
 vikingbot = "vikingbot.cli.commands:app"
+ov-init = "leanviking.cli:app"
 
 [tool.setuptools_scm]
 write_to = "openviking/_version.py"
@@ -194,7 +198,7 @@ tag_regex = "^(?:v)?(?:[a-zA-Z0-9_]+@)?(?P<version>[0-9]+(?:\\.[0-9]+)*)$"
 
 [tool.setuptools.packages.find]
 where = [".", "bot"]
-include = ["openviking*", "vikingbot*"]
+include = ["openviking*", "vikingbot*", "leanviking*"]
 exclude = ["tests*", "docs*", "examples*"]
 
 [tool.setuptools.package-data]
