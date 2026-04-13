@@ -32,11 +32,14 @@ def _install_git_hooks(root: Path) -> None:
 echo "ContextFlow: syncing brain after commit..."
 uv run python -m contextflow.cli sync --project-root $(git rev-parse --show-toplevel)
 """
+    error_msg = None
     try:
         hook_path.write_text(hook_content)
         hook_path.chmod(0o755)
     except Exception as e:
-        om.error(f"Error installing git hooks: {e}")
+        error_msg = str(e)
+    if error_msg is not None:
+        om.error(f"Error installing git hooks: {error_msg}")
 
 
 @app.command()
