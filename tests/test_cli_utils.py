@@ -45,3 +45,20 @@ def test_error_exits_with_given_code():
     with pytest.raises(typer.Exit) as exc_info:
         om.error("fail", code=2)
     assert exc_info.value.exit_code == 2
+
+
+def test_error_exits_with_default_code_1(capsys):
+    om = OutputManager()
+    with pytest.raises(typer.Exit) as exc_info:
+        om.error("something failed")
+    assert exc_info.value.exit_code == 1
+
+
+def test_error_discards_accumulated_data(capsys):
+    om = OutputManager()
+    om.add("key", "val")
+    with pytest.raises(typer.Exit):
+        om.error("error message")
+    out = json.loads(capsys.readouterr().out)
+    assert out == {"status": "error", "message": "error message"}
+    assert "key" not in out
