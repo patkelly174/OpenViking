@@ -15,26 +15,18 @@ app = typer.Typer(help="ContextFlow local brain tools.")
 om = OutputManager()
 
 
-@app.callback()
-def main(
-    json: bool = typer.Option(False, "--json", help="Output results in JSON format"),
-):
-    """ContextFlow local brain tools."""
-    om.json_mode = json
-
-
 def _read_source_file(path: Path) -> str | None:
-    """Read a text file. Returns None for binary files. No size limit — chunker handles large files."""
+    """Read a text file. Returns None for binary files."""
     try:
         raw = path.read_bytes()
-        if b"\x00" in raw:  # NUL byte → binary
+        if b"\x00" in raw:
             return None
         return raw.decode("utf-8", errors="ignore")
     except (OSError, IsADirectoryError):
         return None
 
 
-def _install_git_hooks(root: Path):
+def _install_git_hooks(root: Path) -> None:
     hook_path = root / ".git" / "hooks" / "post-commit"
     hook_content = f"""#!/bin/sh
 echo "ContextFlow: syncing brain after commit..."
@@ -43,9 +35,8 @@ uv run python -m contextflow.cli sync --project-root {root}
     try:
         hook_path.write_text(hook_content)
         hook_path.chmod(0o755)
-        typer.echo("Git post-commit hook installed successfully.")
     except Exception as e:
-        typer.echo(f"Error installing git hooks: {e}", err=True)
+        om.error(f"Error installing git hooks: {e}")
 
 
 @app.command()
@@ -76,8 +67,9 @@ async def _init_async(root: Path, mode: str, install_hooks: bool, force: bool):
         text=True,
     )
     if result.returncode != 0:
-        typer.echo(f"Error: git ls-files failed: {result.stderr.strip()}", err=True)
-        raise typer.Exit(code=1)
+        om.error(f"git ls-files failed: {result.stderr.strip()}")
+        return
+
     files = [f for f in result.stdout.strip().split("\n") if f]
 
     if force:
@@ -85,15 +77,15 @@ async def _init_async(root: Path, mode: str, install_hooks: bool, force: bool):
         if hashes_file.exists():
             hashes_file.unlink()
 
-    # --- L0 generation (per symbol chunk, skip unchanged files) ---
-    # Each task is (coro, dest_path)
+    # --- L0 generation ---
     l0_tasks = []
     l0_dest_paths = []
-    changed_files = set()
+    changed_files: set[str] = set()
+    files_processed = 0
+    chunks_indexed = 0
 
     for rel_file in files:
         abs_file = root / rel_file
-
         if not tracker.has_changed(abs_file):
             continue
 
@@ -103,28 +95,27 @@ async def _init_async(root: Path, mode: str, install_hooks: bool, force: bool):
             continue
 
         chunks = chunk_file(rel_file, content)
+        files_processed += 1
+        chunks_indexed += len(chunks)
 
         for chunk in chunks:
-            # URI encodes the anchor; use it as the filename key
             anchor_suffix = f"#{chunk.anchor}" if chunk.anchor else ""
             l0_filename = f"{rel_file}{anchor_suffix}.l0.txt"
             l0_path = abstracts_dir / l0_filename
             l0_path.parent.mkdir(parents=True, exist_ok=True)
-
             l0_tasks.append(summarizer.generate_l0(chunk.source, f"{rel_file}:{chunk.start_line}"))
             l0_dest_paths.append((l0_path, chunk.uri))
 
     if l0_tasks:
         summaries = await asyncio.gather(*l0_tasks)
         for (path, uri), summary in zip(l0_dest_paths, summaries):
-            # Store as JSON with both fields + the URI for traceability
             path.write_text(json.dumps({
                 "uri": uri,
                 "search_text": summary.search_text,
                 "display_text": summary.display_text,
             }, ensure_ascii=False))
 
-    # --- L1 synthesis: update if any child file changed ---
+    # --- L1 synthesis ---
     dirs_to_files: dict[str, list[str]] = {}
     for rel_file in files:
         parent = str(Path(rel_file).parent)
@@ -138,8 +129,6 @@ async def _init_async(root: Path, mode: str, install_hooks: bool, force: bool):
 
         child_l0s = []
         for rel_file in dir_files:
-            # Collect the first (file-level) L0 for each file, or any chunk
-            # Prefer whole-file chunk (no anchor), fall back to first available
             file_l0_path = abstracts_dir / f"{rel_file}.l0.txt"
             if file_l0_path.exists():
                 try:
@@ -148,7 +137,6 @@ async def _init_async(root: Path, mode: str, install_hooks: bool, force: bool):
                 except Exception:
                     pass
             else:
-                # Find any chunk L0 for this file
                 pattern = f"{rel_file}#*.l0.txt"
                 for p in sorted(abstracts_dir.glob(pattern)):
                     try:
@@ -156,7 +144,7 @@ async def _init_async(root: Path, mode: str, install_hooks: bool, force: bool):
                         child_l0s.append((rel_file, data.get("display_text", "")))
                     except Exception:
                         pass
-                    break  # Only use the first chunk for L1 synthesis
+                    break
 
         if not child_l0s or not dir_changed:
             continue
@@ -170,6 +158,7 @@ async def _init_async(root: Path, mode: str, install_hooks: bool, force: bool):
         l1_tasks.append(summarizer.generate_l1(dir_path, child_l0s))
         l1_dest_paths.append(l1_path)
 
+    l1_dirs_updated = len(l1_tasks)
     if l1_tasks:
         overviews = await asyncio.gather(*l1_tasks)
         for path, overview in zip(l1_dest_paths, overviews):
@@ -182,12 +171,11 @@ async def _init_async(root: Path, mode: str, install_hooks: bool, force: bool):
     mode_file = brain_dir / "embedding_mode"
     prev_mode = mode_file.read_text().strip() if mode_file.exists() else None
     if prev_mode and prev_mode != mode and not force:
-        typer.echo(
-            f"Warning: embedding mode changed from '{prev_mode}' to '{mode}'. "
-            "Re-run with --force to rebuild the index with the new mode.",
-            err=True,
+        om.error(
+            f"Embedding mode changed from '{prev_mode}' to '{mode}'. "
+            "Re-run with --force to rebuild the index with the new mode."
         )
-        raise typer.Exit(code=1)
+        return
     mode_file.write_text(mode)
 
     indexer = Indexer(str(root), embedder=get_embedder(mode=mode))
@@ -196,7 +184,10 @@ async def _init_async(root: Path, mode: str, install_hooks: bool, force: bool):
     if install_hooks:
         _install_git_hooks(root)
 
-    om.echo(f"cf-brain initialized at {brain_dir}")
+    om.add("brain_dir", str(brain_dir))
+    om.add("files_processed", files_processed)
+    om.add("chunks_indexed", chunks_indexed)
+    om.add("l1_dirs_updated", l1_dirs_updated)
     om.finalize()
 
 
@@ -208,7 +199,6 @@ def sync(
     from src.brain import Brain
     brain = Brain(project_root)
     brain.sync_index()
-    om.echo("Brain synced.")
     om.finalize()
 
 
@@ -224,30 +214,21 @@ def query(
     brain.sync_index()
     l0_uris = brain.indexer.search(query_text, top_k=top_k)
 
-    if not l0_uris:
-        om.echo("No relevant context found in the brain.")
-        om.finalize()
-        return
+    display_texts = brain.indexer.get_display_texts(l0_uris)
+    results = []
+    for uri in l0_uris:
+        l1_path = brain._get_l1_path(brain.resolve_uri(uri))
+        try:
+            l1_summary: str | None = l1_path.read_text()
+        except Exception:
+            l1_summary = None
+        results.append({
+            "uri": uri,
+            "display_text": display_texts.get(uri),
+            "l1_summary": l1_summary,
+        })
 
-    if om.json_mode:
-        display_texts = brain.indexer.get_display_texts(l0_uris)
-        results = []
-        for uri in l0_uris:
-            l1_path = brain._get_l1_path(brain.resolve_uri(uri))
-            try:
-                l1_summary = l1_path.read_text()
-            except Exception:
-                l1_summary = None
-            results.append({
-                "uri": uri,
-                "display_text": display_texts.get(uri),
-                "l1_summary": l1_summary,
-            })
-        om.add_data("results", results)
-    else:
-        context = brain.get_context(query_text, top_k=top_k)
-        typer.echo(context)
-
+    om.add("results", results)
     om.finalize()
 
 
@@ -256,15 +237,10 @@ def dive(
     uri: str,
     project_root: str = typer.Option(".", help="Project root directory"),
 ):
-    """Read the full source of a contextflow:// URI found in a brain query."""
+    """Read the full source of a contextflow:// URI."""
     from src.brain import Brain
     brain = Brain(project_root)
     content = brain.dive(uri)
-
-    if om.json_mode:
-        om.add_data("uri", uri)
-        om.add_data("content", content)
-    else:
-        typer.echo(content)
-
+    om.add("uri", uri)
+    om.add("content", content)
     om.finalize()
