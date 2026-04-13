@@ -12,6 +12,7 @@ class OutputManager:
 
     def error(self, message: str, code: int = 1) -> None:
         print(json.dumps({"status": "error", "message": message}, indent=2))
+        self._data = {}
         raise typer.Exit(code=code)
 
     def finalize(self) -> None:

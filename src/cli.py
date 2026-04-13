@@ -28,9 +28,9 @@ def _read_source_file(path: Path) -> str | None:
 
 def _install_git_hooks(root: Path) -> None:
     hook_path = root / ".git" / "hooks" / "post-commit"
-    hook_content = f"""#!/bin/sh
+    hook_content = """#!/bin/sh
 echo "ContextFlow: syncing brain after commit..."
-uv run python -m contextflow.cli sync --project-root {root}
+uv run python -m contextflow.cli sync --project-root $(git rev-parse --show-toplevel)
 """
     try:
         hook_path.write_text(hook_content)
@@ -142,9 +142,9 @@ async def _init_async(root: Path, mode: str, install_hooks: bool, force: bool):
                     try:
                         data = json.loads(p.read_text())
                         child_l0s.append((rel_file, data.get("display_text", "")))
+                        break
                     except Exception:
                         pass
-                    break
 
         if not child_l0s or not dir_changed:
             continue
