@@ -12,7 +12,7 @@ class Memory:
         self.memories_dir.mkdir(parents=True, exist_ok=True)
 
     async def extract_truths(
-        self, transcript: str, model: str = "gpt-4o-mini"
+        self, transcript: str, model: str = "gpt-5-nano"
     ) -> list[dict]:
         prompt = (
             "Extract key truths, decisions, and preferences from this conversation "

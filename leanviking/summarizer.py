@@ -1,10 +1,10 @@
 import litellm
 
 class Summarizer:
-    def __init__(self, model: str = "gpt-4o-mini"):
+    def __init__(self, model: str = "gpt-5-nano"):
         self.model = model
 
-    async def generate_l0(self, content: str) -> str:
+    async def generate_l0(self, content: str, rel_path: str = "") -> str:
         """
         Takes raw file content and returns a one-sentence summary.
         """
@@ -12,10 +12,12 @@ class Summarizer:
             return "Empty or non-functional file"
 
         prompt = (
-            "Summarize the following file content in exactly one sentence. "
+            "Summarize the following line-numbered file content in exactly one sentence. "
             "Focus on the primary purpose of the code. If the file is empty or "
             "does not perform any functional task, return 'Empty or non-functional file'.\n\n"
-            f"{content}"
+            "When referring to specific logic or components, use the format `path:line` (e.g., `src/main.py:10`).\n\n"
+            f"File: {rel_path}\n"
+            f"Content:\n{content}"
         )
 
         response = await litellm.acompletion(
@@ -26,7 +28,7 @@ class Summarizer:
 
     async def generate_l1(self, folder_name: str, child_l0s: list) -> str:
         """
-        Takes a folder name and a list of (filename, summary) tuples,
+        Takes a folder name and a list of (relative_path, summary) tuples,
         and returns a structural map of the directory.
         """
         children_str = "\n".join([f"- {name}: {summary}" for name, summary in child_l0s])
@@ -35,7 +37,9 @@ class Summarizer:
             f"{children_str}\n\n"
             "Please provide the response in the following format:\n"
             "1. A 2-3 sentence summary of the directory's overall purpose and role in the project.\n"
-            "2. A list of key components/files and their significance within this directory."
+            "2. A list of key components/files and their significance within this directory. "
+            "Ensure that all file references use their full relative paths as provided in the list and preserve "
+            "the `path:line` markers from the L0 summaries."
         )
 
         response = await litellm.acompletion(
